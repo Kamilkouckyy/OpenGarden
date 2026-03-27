@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "node-modules": "^1.0.1"
+  },
+  "name": "opengarden",
+  "version": "1.0.0",
+  "description": "Unicorn University project",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kamilkouckyy/OpenGarden.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Kamilkouckyy/OpenGarden/issues"
+  },
+  "homepage": "https://github.com/Kamilkouckyy/OpenGarden#readme"
+}
