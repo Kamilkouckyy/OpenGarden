@@ -1,0 +1,103 @@
+.garden-bed-detail {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.garden-bed-detail__card {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.garden-bed-detail__header {
+  margin-bottom: 24px;
+}
+
+.garden-bed-detail__code {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  background: #eef4ea;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.garden-bed-detail__title {
+  margin: 0;
+  font-size: 28px;
+}
+
+.garden-bed-detail__content {
+  display: grid;
+  gap: 16px;
+}
+
+.garden-bed-detail__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.garden-bed-detail__label {
+  font-weight: 600;
+  color: #555555;
+}
+
+.garden-bed-detail__value {
+  text-align: right;
+}
+
+.garden-bed-detail__status {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.garden-bed-detail__status--available {
+  color: #2e7d32;
+}
+
+.garden-bed-detail__status--assigned {
+  color: #1565c0;
+}
+
+.garden-bed-detail__status--maintenance {
+  color: #ef6c00;
+}
+
+.garden-bed-detail__description {
+  padding-top: 8px;
+}
+
+.garden-bed-detail__text {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.garden-bed-detail__actions {
+  margin-top: 24px;
+}
+
+.garden-bed-detail__button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #2e7d32;
+  color: #ffffff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.garden-bed-detail__button:hover {
+  opacity: 0.92;
+}
+
+.garden-bed-detail__empty {
+  text-align: center;
+  color: #666666;
+}
