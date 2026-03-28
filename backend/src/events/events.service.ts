@@ -1,0 +1,146 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { DRIZZLE } from '../database/database.module';
+import * as schema from '../database/schema';
+import { CreateEventDto } from './dto/create-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+import { UpdateParticipationDto } from './dto/update-participation.dto';
+
+@Injectable()
+export class EventsService {
+  constructor(@Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>) {}
+
+  findAll() {
+    return this.db.select().from(schema.communityEvents);
+  }
+
+  async findOne(id: number) {
+    const [event] = await this.db
+      .select()
+      .from(schema.communityEvents)
+      .where(eq(schema.communityEvents.id, id));
+    if (!event) throw new NotFoundException(`Akce #${id} nenalezena`);
+    return event;
+  }
+
+  async create(dto: CreateEventDto, createdBy: number) {
+    if (new Date(dto.eventDate) < new Date()) {
+      throw new BadRequestException('Datum akce nemůže být v minulosti');
+    }
+    const [event] = await this.db
+      .insert(schema.communityEvents)
+      .values({ ...dto, eventDate: new Date(dto.eventDate), createdBy })
+      .returning();
+    return event;
+  }
+
+  async update(id: number, dto: UpdateEventDto, userId: number, isAdmin: boolean) {
+    const event = await this.findOne(id);
+    if (!isAdmin && event.createdBy !== userId) {
+      throw new ForbiddenException('Pouze autor nebo admin může upravovat akci');
+    }
+    const data: Partial<typeof schema.communityEvents.$inferInsert> = {
+      title: dto.title,
+      description: dto.description,
+    };
+    if (dto.eventDate) data.eventDate = new Date(dto.eventDate);
+    const [updated] = await this.db
+      .update(schema.communityEvents)
+      .set(data)
+      .where(eq(schema.communityEvents.id, id))
+      .returning();
+    return updated;
+  }
+
+  async cancel(id: number, userId: number, isAdmin: boolean) {
+    const event = await this.findOne(id);
+    if (!isAdmin && event.createdBy !== userId) {
+      throw new ForbiddenException('Pouze autor nebo admin může zrušit akci');
+    }
+    if (event.status === 'cancelled') {
+      throw new BadRequestException('Akce je již zrušena');
+    }
+    const [updated] = await this.db
+      .update(schema.communityEvents)
+      .set({ status: 'cancelled' })
+      .where(eq(schema.communityEvents.id, id))
+      .returning();
+    // System actor: linked úkoly skryje (označí jako done) – dle AGENTS.md
+    // TODO: implementovat viditelnost tasků až bude visibility field přidán do tasks
+    return updated;
+  }
+
+  async restore(id: number, userId: number, isAdmin: boolean) {
+    const event = await this.findOne(id);
+    if (!isAdmin && event.createdBy !== userId) {
+      throw new ForbiddenException('Pouze autor nebo admin může obnovit akci');
+    }
+    if (event.status === 'active') {
+      throw new BadRequestException('Akce již je aktivní');
+    }
+    const [updated] = await this.db
+      .update(schema.communityEvents)
+      .set({ status: 'active' })
+      .where(eq(schema.communityEvents.id, id))
+      .returning();
+    return updated;
+  }
+
+  async remove(id: number, userId: number, isAdmin: boolean) {
+    const event = await this.findOne(id);
+    if (!isAdmin && event.createdBy !== userId) {
+      throw new ForbiddenException('Pouze autor nebo admin může smazat akci');
+    }
+    await this.db
+      .delete(schema.eventParticipations)
+      .where(eq(schema.eventParticipations.eventId, id));
+    await this.db.delete(schema.communityEvents).where(eq(schema.communityEvents.id, id));
+  }
+
+  async getParticipations(eventId: number) {
+    await this.findOne(eventId);
+    return this.db
+      .select()
+      .from(schema.eventParticipations)
+      .where(eq(schema.eventParticipations.eventId, eventId));
+  }
+
+  async updateParticipation(eventId: number, userId: number, dto: UpdateParticipationDto) {
+    const event = await this.findOne(eventId);
+    if (event.status === 'cancelled') {
+      throw new BadRequestException('Na zrušenou akci nelze nastavit účast');
+    }
+
+    const [existing] = await this.db
+      .select()
+      .from(schema.eventParticipations)
+      .where(
+        and(
+          eq(schema.eventParticipations.eventId, eventId),
+          eq(schema.eventParticipations.userId, userId),
+        ),
+      );
+
+    if (existing) {
+      const [updated] = await this.db
+        .update(schema.eventParticipations)
+        .set({ status: dto.status, updatedAt: new Date() })
+        .where(eq(schema.eventParticipations.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await this.db
+      .insert(schema.eventParticipations)
+      .values({ eventId, userId, status: dto.status })
+      .returning();
+    return created;
+  }
+}
