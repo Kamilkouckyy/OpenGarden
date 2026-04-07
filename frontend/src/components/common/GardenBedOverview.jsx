@@ -53,6 +53,15 @@ export default function GardenBedOverview() {
   const handleAddTask = (name) => notify(`Úkol přidán k záhonu „${name}".`);
   const handleReport = (name) => notify(`Záhon „${name}" byl nahlášen.`);
   const handleEdit = (name) => notify(`Upravit záhon „${name}" (zatím nedostupné).`);
+  
+  const handleReserve = (id, name) => {
+    setBeds((prev) =>
+      prev.map((b) =>
+        b.id === id ? { ...b, status: "obsazený", gardener: CURRENT_USER } : b
+      )
+    );
+    notify(`Rezervovali jste záhon „${name}".`);
+  };
 
 
   const filtered = beds.filter(
@@ -63,8 +72,7 @@ export default function GardenBedOverview() {
     <>
 
 
-      <div className="gbl-root">
-        <div className="gbl-card">
+      <div className="gbl-card">
 
           {/* Header */}
           <div className="gbl-header">
@@ -131,6 +139,11 @@ export default function GardenBedOverview() {
                         Uvolnit
                       </button>
                     )}
+                    {!isOccupied && (
+                      <button className="gbl-action reserve" onClick={() => handleReserve(bed.id, bed.name)}>
+                        Rezervovat
+                      </button>
+                    )}
                     <button className="gbl-action task" onClick={() => handleAddTask(bed.name)}>
                       + Úkol
                     </button>
@@ -152,7 +165,6 @@ export default function GardenBedOverview() {
               );
             })}
           </div>
-        </div>
       </div>
 
 
