@@ -17,7 +17,6 @@ export class TasksService {
   constructor(@Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>) {}
 
   findAll(linkedType?: string, linkedId?: number) {
-    // Základní filtr – rozšiřovat dle potřeby
     return this.db.select().from(schema.tasks);
   }
 
@@ -30,7 +29,7 @@ export class TasksService {
     return task;
   }
 
-  async create(dto: CreateTaskDto, createdBy: number) {
+  async create(dto: CreateTaskDto, authorId: number) {
     if ((dto.linkedType && !dto.linkedId) || (!dto.linkedType && dto.linkedId)) {
       throw new BadRequestException('linkedType a linkedId musí být vyplněny oba nebo ani jeden');
     }
@@ -39,10 +38,10 @@ export class TasksService {
     let context = 'General';
     if (dto.linkedType === 'plot' && dto.linkedId) {
       const [bed] = await this.db
-        .select({ label: schema.gardenBeds.label })
+        .select({ name: schema.gardenBeds.name })
         .from(schema.gardenBeds)
         .where(eq(schema.gardenBeds.id, dto.linkedId));
-      context = bed ? `Plot ${bed.label}` : 'Plot';
+      context = bed ? `Plot ${bed.name}` : 'Plot';
     } else if (dto.linkedType === 'report' && dto.linkedId) {
       const [report] = await this.db
         .select({ title: schema.reports.title })
@@ -59,14 +58,14 @@ export class TasksService {
 
     const [task] = await this.db
       .insert(schema.tasks)
-      .values({ ...dto, createdBy, context })
+      .values({ ...dto, authorId, context })
       .returning();
     return task;
   }
 
   async update(id: number, dto: UpdateTaskDto, userId: number, isAdmin: boolean) {
     const task = await this.findOne(id);
-    if (!isAdmin && task.createdBy !== userId) {
+    if (!isAdmin && task.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může upravovat úkol');
     }
     const [updated] = await this.db
@@ -79,7 +78,7 @@ export class TasksService {
 
   async toggleStatus(id: number, userId: number, isAdmin: boolean) {
     const task = await this.findOne(id);
-    if (!isAdmin && task.createdBy !== userId) {
+    if (!isAdmin && task.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může měnit stav úkolu');
     }
     const nextStatus = task.status === 'done' ? 'in_progress' : 'done';
@@ -93,7 +92,7 @@ export class TasksService {
 
   async remove(id: number, userId: number, isAdmin: boolean) {
     const task = await this.findOne(id);
-    if (!isAdmin && task.createdBy !== userId) {
+    if (!isAdmin && task.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může smazat úkol');
     }
     await this.db.delete(schema.tasks).where(eq(schema.tasks.id, id));

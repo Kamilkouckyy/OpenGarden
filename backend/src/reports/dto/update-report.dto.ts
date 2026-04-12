@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class UpdateReportDto {
   @ApiPropertyOptional({ example: 'Zlomené kolo' })
@@ -12,6 +12,11 @@ export class UpdateReportDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/photo.jpg' })
+  @IsOptional()
+  @IsUrl()
+  photoUrl?: string;
 
   @ApiPropertyOptional({
     enum: ['new', 'in_progress', 'resolved'],

@@ -2,19 +2,19 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateGardenBedDto {
-  @ApiPropertyOptional({ example: 'B2' })
+  @ApiPropertyOptional({ example: 'Záhon B2' })
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  label?: string;
+  name?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['available', 'reserved', 'inactive'] })
+  @ApiPropertyOptional({ enum: ['free', 'occupied'] })
   @IsOptional()
-  @IsEnum(['available', 'reserved', 'inactive'])
-  status?: 'available' | 'reserved' | 'inactive';
+  @IsEnum({ free: 'free', occupied: 'occupied' })
+  status?: 'free' | 'occupied';
 }

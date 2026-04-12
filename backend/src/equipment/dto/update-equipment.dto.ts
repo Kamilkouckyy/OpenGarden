@@ -13,8 +13,8 @@ export class UpdateEquipmentDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['ok', 'damaged', 'under_repair', 'retired'] })
+  @ApiPropertyOptional({ enum: ['functional', 'non_functional'] })
   @IsOptional()
-  @IsEnum(['ok', 'damaged', 'under_repair', 'retired'])
-  status?: 'ok' | 'damaged' | 'under_repair' | 'retired';
+  @IsEnum(['functional', 'non_functional'])
+  status?: 'functional' | 'non_functional';
 }
