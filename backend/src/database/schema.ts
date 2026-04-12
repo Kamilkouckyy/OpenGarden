@@ -15,22 +15,13 @@ import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['member', 'admin']);
 
-export const gardenBedStatusEnum = pgEnum('garden_bed_status', [
-  'available',
-  'reserved',
-  'inactive',
-]);
+export const gardenBedStatusEnum = pgEnum('garden_bed_status', ['free', 'occupied']);
 
 export const taskStatusEnum = pgEnum('task_status', ['open', 'in_progress', 'done']);
 
 export const taskLinkedTypeEnum = pgEnum('task_linked_type', ['plot', 'report', 'event']);
 
-export const equipmentStatusEnum = pgEnum('equipment_status', [
-  'ok',
-  'damaged',
-  'under_repair',
-  'retired',
-]);
+export const equipmentStatusEnum = pgEnum('equipment_status', ['functional', 'non_functional']);
 
 export const reportStatusEnum = pgEnum('report_status', ['new', 'in_progress', 'resolved']);
 
@@ -55,27 +46,26 @@ export const users = pgTable('users', {
 
 export const gardenBeds = pgTable('garden_beds', {
   id: serial('id').primaryKey(),
-  label: varchar('label', { length: 50 }).notNull(),
+  name: varchar('name', { length: 50 }).notNull(),
   description: text('description'),
-  status: gardenBedStatusEnum('status').default('available').notNull(),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  status: gardenBedStatusEnum('status').default('free').notNull(),
+  ownerId: integer('owner_id').references(() => users.id, { onDelete: 'set null' }),
   ownerName: varchar('owner_name', { length: 100 }),
   reservedAt: timestamp('reserved_at'),
 });
 
 export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(),
-  title: varchar('title', { length: 200 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   status: taskStatusEnum('status').default('open').notNull(),
   context: varchar('context', { length: 100 }).default('General').notNull(),
-  createdBy: integer('created_by')
+  authorId: integer('author_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  resolverId: integer('resolver_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   dueDate: date('due_date'),
-  // Flexibilní vazba na plot / report / event (aplikační FK, ne DB constraint)
   linkedType: taskLinkedTypeEnum('linked_type'),
   linkedId: integer('linked_id'),
 });
@@ -84,8 +74,8 @@ export const equipment = pgTable('equipment', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
-  status: equipmentStatusEnum('status').default('ok').notNull(),
-  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  status: equipmentStatusEnum('status').default('functional').notNull(),
+  authorId: integer('author_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -93,7 +83,8 @@ export const reports = pgTable('reports', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 200 }).notNull(),
   description: text('description').notNull(),
-  reportedBy: integer('reported_by')
+  photoUrl: varchar('photo_url', { length: 500 }),
+  authorId: integer('author_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   authorName: varchar('author_name', { length: 100 }).notNull(),
@@ -107,9 +98,9 @@ export const communityEvents = pgTable('community_events', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 200 }).notNull(),
   description: text('description'),
-  eventDate: timestamp('event_date').notNull(),
+  date: timestamp('event_date').notNull(),
   status: eventStatusEnum('status').default('active').notNull(),
-  createdBy: integer('created_by')
+  authorId: integer('author_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -135,8 +126,8 @@ export const eventParticipations = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   gardenBeds: many(gardenBeds),
-  createdTasks: many(tasks, { relationName: 'taskCreator' }),
-  assignedTasks: many(tasks, { relationName: 'taskAssignee' }),
+  authoredTasks: many(tasks, { relationName: 'taskAuthor' }),
+  resolvedTasks: many(tasks, { relationName: 'taskResolver' }),
   equipment: many(equipment),
   reports: many(reports),
   events: many(communityEvents),
@@ -144,34 +135,34 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const gardenBedsRelations = relations(gardenBeds, ({ one }) => ({
-  owner: one(users, { fields: [gardenBeds.userId], references: [users.id] }),
+  owner: one(users, { fields: [gardenBeds.ownerId], references: [users.id] }),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({
-  creator: one(users, {
-    fields: [tasks.createdBy],
+  author: one(users, {
+    fields: [tasks.authorId],
     references: [users.id],
-    relationName: 'taskCreator',
+    relationName: 'taskAuthor',
   }),
-  assignee: one(users, {
-    fields: [tasks.assignedTo],
+  resolver: one(users, {
+    fields: [tasks.resolverId],
     references: [users.id],
-    relationName: 'taskAssignee',
+    relationName: 'taskResolver',
   }),
 }));
 
 export const equipmentRelations = relations(equipment, ({ one, many }) => ({
-  creator: one(users, { fields: [equipment.createdBy], references: [users.id] }),
+  author: one(users, { fields: [equipment.authorId], references: [users.id] }),
   reports: many(reports),
 }));
 
 export const reportsRelations = relations(reports, ({ one }) => ({
-  reporter: one(users, { fields: [reports.reportedBy], references: [users.id] }),
+  author: one(users, { fields: [reports.authorId], references: [users.id] }),
   equipment: one(equipment, { fields: [reports.equipmentId], references: [equipment.id] }),
 }));
 
 export const communityEventsRelations = relations(communityEvents, ({ one, many }) => ({
-  creator: one(users, { fields: [communityEvents.createdBy], references: [users.id] }),
+  author: one(users, { fields: [communityEvents.authorId], references: [users.id] }),
   participations: many(eventParticipations),
 }));
 

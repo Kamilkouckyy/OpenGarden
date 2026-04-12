@@ -2,18 +2,18 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateGardenBedDto {
-  @ApiProperty({ example: 'A1', description: 'Označení záhonu', maxLength: 50 })
+  @ApiProperty({ example: 'Záhon A1', description: 'Název záhonu', maxLength: 50 })
   @IsString()
   @MaxLength(50)
-  label: string;
+  name: string;
 
   @ApiPropertyOptional({ example: 'Slunný záhon u plotu' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['available', 'reserved', 'inactive'], default: 'available' })
+  @ApiPropertyOptional({ enum: ['free', 'occupied'], default: 'free' })
   @IsOptional()
-  @IsEnum(['available', 'reserved', 'inactive'])
-  status?: 'available' | 'reserved' | 'inactive';
+  @IsEnum({ free: 'free', occupied: 'occupied' })
+  status?: 'free' | 'occupied';
 }

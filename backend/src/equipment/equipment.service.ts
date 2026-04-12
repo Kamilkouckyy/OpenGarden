@@ -28,17 +28,17 @@ export class EquipmentService {
     return item;
   }
 
-  async create(dto: CreateEquipmentDto, createdBy: number) {
+  async create(dto: CreateEquipmentDto, authorId: number) {
     const [item] = await this.db
       .insert(schema.equipment)
-      .values({ ...dto, createdBy })
+      .values({ ...dto, authorId })
       .returning();
     return item;
   }
 
   async update(id: number, dto: UpdateEquipmentDto, userId: number, isAdmin: boolean) {
     const item = await this.findOne(id);
-    if (!isAdmin && item.createdBy !== userId) {
+    if (!isAdmin && item.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může upravovat vybavení');
     }
     const [updated] = await this.db
@@ -51,7 +51,7 @@ export class EquipmentService {
 
   async remove(id: number, userId: number, isAdmin: boolean) {
     const item = await this.findOne(id);
-    if (!isAdmin && item.createdBy !== userId) {
+    if (!isAdmin && item.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může smazat vybavení');
     }
     await this.db.delete(schema.equipment).where(eq(schema.equipment.id, id));
@@ -61,7 +61,7 @@ export class EquipmentService {
   async markFunctional(id: number) {
     await this.db
       .update(schema.equipment)
-      .set({ status: 'ok' })
+      .set({ status: 'functional' })
       .where(eq(schema.equipment.id, id));
   }
 }

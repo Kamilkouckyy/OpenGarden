@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 import GardenBedOverview from "./components/common/GardenBedOverview.jsx";
-import GardenBedDetail from "./components/common/GardenBedDetail.js";
+import GardenBedDetail from "./components/common/GardenBedDetailView.js";
 import TaskPanelOverview from "./components/common/TaskPanelOverview.js";
 import Navbar from "./components/layout/Navbar.jsx";
 

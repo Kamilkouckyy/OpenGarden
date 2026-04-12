@@ -10,9 +10,9 @@ import {
 } from 'class-validator';
 
 export class CreateTaskDto {
-  @ApiProperty({ example: 'Weed the herbs', maxLength: 200 })
+  @ApiProperty({ example: 'Weed the herbs', maxLength: 255 })
   @IsString()
-  @MaxLength(200)
+  @MaxLength(255)
   title: string;
 
   @ApiPropertyOptional({ example: 'Focus on the mint bed', maxLength: 4000 })
@@ -26,10 +26,10 @@ export class CreateTaskDto {
   @IsDateString()
   dueDate?: string;
 
-  @ApiPropertyOptional({ example: 2, description: 'ID uživatele přiřazeného k úkolu' })
+  @ApiPropertyOptional({ example: 2, description: 'ID uživatele přiřazeného k řešení úkolu' })
   @IsOptional()
   @IsInt()
-  assignedTo?: number;
+  resolverId?: number;
 
   @ApiPropertyOptional({
     enum: ['plot', 'report', 'event'],
