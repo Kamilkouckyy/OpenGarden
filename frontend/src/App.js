@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 import GardenBedOverview from "./components/common/GardenBedOverview.jsx";
-import GardenBedDetail from "./components/common/GardenBedDetailView.js";
+import GardenBedDetailview from "./components/common/GardenBedDetailview.js";
 import TaskPanelOverview from "./components/common/TaskPanelOverview.js";
+import TaskDetailCard from "./components/common/TaskDetailCard.js";
 import Navbar from "./components/layout/Navbar.jsx";
 
 export default function App() {
@@ -45,8 +46,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/garden-beds" replace />} />
           <Route path="/garden-beds" element={<GardenBedOverview />} />
-          <Route path="/garden-beds/:id" element={<GardenBedDetail currentUser={user} />} />
-          <Route path="/tasks" element={<TaskPanelOverview />} />
+          <Route path="/garden-beds/:id" element={<GardenBedDetailview currentUser={user} />} />
+          <Route path="/tasks" element={<TaskPanelOverview currentUser={user} />} />
+          <Route path="/tasks/:id" element={<TaskDetailCard currentUser={user} />} />
           <Route path="/reports" element={<Navigate to="/reports" replace />} />
           <Route path="/equipment" element={<Navigate to="/equipment" replace />} />
           <Route path="/events" element={<Navigate to="/events" replace />} />

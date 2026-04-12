@@ -1,0 +1,119 @@
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 999;
+}
+
+.task-status-modal {
+  width: 100%;
+  max-width: 620px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.task-status-modal__header {
+  position: relative;
+  padding: 26px 28px;
+  border-bottom: 1px solid #e7e7e7;
+  text-align: center;
+}
+
+.task-status-modal__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #2b2b2b;
+}
+
+.task-status-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  border: none;
+  background: transparent;
+  font-size: 34px;
+  line-height: 1;
+  color: #7c7c7c;
+  cursor: pointer;
+}
+
+.task-status-modal__body {
+  padding: 26px 36px 20px;
+}
+
+.task-status-modal__subtitle {
+  margin: 0 0 26px;
+  text-align: center;
+  font-size: 18px;
+  color: #555555;
+}
+
+.task-status-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.task-status-modal__option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 22px;
+  color: #1f1f1f;
+  cursor: pointer;
+}
+
+.task-status-modal__option input[type="radio"] {
+  width: 26px;
+  height: 26px;
+  accent-color: #1b6f57;
+}
+
+.task-status-modal__footer {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 26px 24px 28px;
+  border-top: 1px solid #e7e7e7;
+}
+
+.task-status-modal__save,
+.task-status-modal__cancel {
+  min-width: 150px;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1px solid #1b6f57;
+}
+
+.task-status-modal__save {
+  background: #1b6f57;
+  color: #ffffff;
+}
+
+.task-status-modal__cancel {
+  background: #ffffff;
+  color: #1b6f57;
+}
+
+@media (max-width: 768px) {
+  .task-status-modal__body {
+    padding: 22px 20px 18px;
+  }
+
+  .task-status-modal__option {
+    font-size: 18px;
+  }
+
+  .task-status-modal__footer {
+    flex-wrap: wrap;
+  }
+}
