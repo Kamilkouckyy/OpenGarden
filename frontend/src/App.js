@@ -45,7 +45,7 @@ export default function App() {
       <main className="og-page-wrap">
         <Routes>
           <Route path="/" element={<Navigate to="/garden-beds" replace />} />
-          <Route path="/garden-beds" element={<GardenBedOverview />} />
+          <Route path="/garden-beds" element={<GardenBedOverview currentUser={user} />} />
           <Route path="/garden-beds/:id" element={<GardenBedDetailview currentUser={user} />} />
           <Route path="/tasks" element={<TaskPanelOverview currentUser={user} />} />
           <Route path="/tasks/:id" element={<TaskDetailCard currentUser={user} />} />

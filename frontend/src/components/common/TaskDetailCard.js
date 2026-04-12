@@ -1,41 +1,9 @@
-import React, { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { taskApi } from "../../services/api/taskApi";
+import { subscribeToDbChanges } from "../../services/api/mockDb";
 import TaskStatusModal from "./TaskStatusModal";
 import "./TaskDetailCard.css";
-
-const MOCK_TASKS = [
-  {
-    id: 1,
-    title: "Weeding garden bed #3",
-    resolver: "Eva Nováková",
-    deadline: "2024-04-30",
-    assignment: "Zahrádka A3",
-    description:
-      "Weed garden bed #3, remove all the weeds around the vegetables.\nMake sure to remove the roots completely.",
-    status: "in_progress",
-    author: "Anna",
-  },
-  {
-    id: 2,
-    title: "Sweep the entire garden",
-    resolver: "Anna",
-    deadline: "2024-05-03",
-    assignment: "Whole garden",
-    description: "Sweep all common paths and shared areas in the garden.",
-    status: "open",
-    author: "Anna",
-  },
-  {
-    id: 3,
-    title: "Repair rake",
-    resolver: "David",
-    deadline: "2024-05-08",
-    assignment: "Equipment",
-    description: "Check the damaged rake and repair or replace the broken handle.",
-    status: "done",
-    author: "David",
-  },
-];
 
 function formatDate(value) {
   if (!value) return "";
@@ -58,19 +26,38 @@ function getStatusText(status) {
 
 export default function TaskDetailCard({ currentUser }) {
   const { id } = useParams();
-
-  const taskFromData = useMemo(
-    () => MOCK_TASKS.find((item) => String(item.id) === String(id)),
-    [id]
-  );
-
-  const [task, setTask] = useState(taskFromData);
+  const navigate = useNavigate();
+  const [task, setTask] = useState(undefined);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(taskFromData?.status || "open");
-  const [formData, setFormData] = useState(taskFromData);
+  const [selectedStatus, setSelectedStatus] = useState("open");
+  const [formData, setFormData] = useState(null);
 
-  if (!task) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTask = async () => {
+      const data = await taskApi.getById(id);
+      if (!isMounted) return;
+      setTask(data);
+      setFormData(data);
+      setSelectedStatus(data?.status || "open");
+    };
+
+    loadTask();
+    const unsubscribe = subscribeToDbChanges(loadTask);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [id]);
+
+  if (task === undefined) {
+    return null;
+  }
+
+  if (!task || !formData) {
     return (
       <section className="task-detail">
         <div className="task-detail__card">
@@ -101,9 +88,10 @@ export default function TaskDetailCard({ currentUser }) {
     setIsEditMode(true);
   };
 
-  const handleSaveEdit = () => {
-    setTask(formData);
-    setSelectedStatus(formData.status);
+  const handleSaveEdit = async () => {
+    const updatedTask = await taskApi.update(task.id, formData);
+    setTask(updatedTask);
+    setSelectedStatus(updatedTask.status);
     setIsEditMode(false);
   };
 
@@ -112,9 +100,10 @@ export default function TaskDetailCard({ currentUser }) {
     setIsEditMode(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm(`Do you really want to delete task "${task.title}"?`)) return;
-    window.alert(`Deleting task "${task.title}" will be connected later.`);
+    await taskApi.remove(task.id);
+    navigate("/tasks");
   };
 
   const handleOpenStatusModal = () => {
@@ -122,15 +111,10 @@ export default function TaskDetailCard({ currentUser }) {
     setShowStatusModal(true);
   };
 
-  const handleSaveStatus = () => {
-    setTask((prev) => ({
-      ...prev,
-      status: selectedStatus,
-    }));
-    setFormData((prev) => ({
-      ...prev,
-      status: selectedStatus,
-    }));
+  const handleSaveStatus = async () => {
+    const updatedTask = await taskApi.updateStatus(task.id, selectedStatus);
+    setTask(updatedTask);
+    setFormData(updatedTask);
     setShowStatusModal(false);
   };
 
@@ -232,11 +216,7 @@ export default function TaskDetailCard({ currentUser }) {
                   {getStatusText(task.status)}
                 </div>
 
-                <button
-                  type="button"
-                  className="task-detail__btn"
-                  onClick={handleOpenStatusModal}
-                >
+                <button type="button" className="task-detail__btn" onClick={handleOpenStatusModal}>
                   Status Update
                 </button>
               </div>
@@ -245,11 +225,7 @@ export default function TaskDetailCard({ currentUser }) {
             <div className="task-detail__edit-row">
               {canEdit && !isEditMode && (
                 <>
-                  <button
-                    type="button"
-                    className="task-detail__btn"
-                    onClick={handleEditClick}
-                  >
+                  <button type="button" className="task-detail__btn" onClick={handleEditClick}>
                     Edit
                   </button>
 
@@ -265,11 +241,7 @@ export default function TaskDetailCard({ currentUser }) {
 
               {canEdit && isEditMode && (
                 <>
-                  <button
-                    type="button"
-                    className="task-detail__btn"
-                    onClick={handleSaveEdit}
-                  >
+                  <button type="button" className="task-detail__btn" onClick={handleSaveEdit}>
                     Save
                   </button>
 

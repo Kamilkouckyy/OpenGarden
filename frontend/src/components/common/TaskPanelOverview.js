@@ -1,105 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { taskApi } from "../../services/api/taskApi";
+import { subscribeToDbChanges } from "../../services/api/mockDb";
 import TaskStatusModal from "./TaskStatusModal";
 import "./TaskPanelOverview.css";
 
-const MOCK_TASKS = [
-  {
-    id: 1,
-    title: "Úkol: Prořezat maliník",
-    status: "otevřený",
-    dueDate: "27.3.2026",
-    assignedTo: "Anna",
-    relatedBed: "Zahrádka A3",
-    author: "Anna",
-    color: "red",
-  },
-  {
-    id: 2,
-    title: "Úkol: Zalít rajčata",
-    status: "otevřený",
-    dueDate: "30.3.2026",
-    assignedTo: "Eva Nováková",
-    relatedBed: "Zahrádka A1",
-    author: "Anna",
-    color: "yellow",
-  },
-  {
-    id: 3,
-    title: "Úkol: Zalít rajčata",
-    status: "otevřený",
-    dueDate: "30.3.2026",
-    assignedTo: "David",
-    relatedBed: "Zahrádka A3",
-    author: "David",
-    color: "yellow",
-  },
-  {
-    id: 4,
-    title: "Úkol: Opravit hrábě",
-    status: "rozpracovaný",
-    dueDate: "31.3.2026",
-    assignedTo: "David",
-    relatedBed: "Nářadí",
-    author: "David",
-    color: "blue",
-  },
-  {
-    id: 5,
-    title: "Úkol: Zamést celou zahradu",
-    status: "dokončený",
-    dueDate: "27.3.2026",
-    assignedTo: "Anna",
-    relatedBed: "Celá zahrada",
-    author: "Anna",
-    color: "green",
-  },
-];
-
-function mapStatusToModalValue(status) {
-  if (status === "otevřený") return "open";
-  if (status === "rozpracovaný") return "in_progress";
-  if (status === "dokončený") return "done";
-  return "open";
-}
-
-function mapModalValueToStatus(status) {
+function formatTaskStatus(status) {
   if (status === "open") return "otevřený";
   if (status === "in_progress") return "rozpracovaný";
   if (status === "done") return "dokončený";
-  return "otevřený";
+  return status;
 }
 
-function TaskPanelOverview({ tasks, currentUser }) {
+function formatDisplayDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("cs-CZ");
+}
+
+function TaskPanelOverview({ currentUser }) {
   const navigate = useNavigate();
-  const [taskList, setTaskList] = useState(
-    tasks && tasks.length > 0 ? tasks : MOCK_TASKS
-  );
+  const [taskList, setTaskList] = useState([]);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("open");
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTasks = async () => {
+      const data = await taskApi.list();
+      if (isMounted) setTaskList(data);
+    };
+
+    loadTasks();
+    const unsubscribe = subscribeToDbChanges(loadTasks);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
   const openStatusModal = (task) => {
     setSelectedTaskId(task.id);
-    setSelectedStatus(mapStatusToModalValue(task.status));
+    setSelectedStatus(task.status || "open");
     setShowStatusModal(true);
   };
 
-  const handleSaveStatus = () => {
-    setTaskList((prev) =>
-      prev.map((task) =>
-        task.id === selectedTaskId
-          ? { ...task, status: mapModalValueToStatus(selectedStatus) }
-          : task
-      )
-    );
+  const handleSaveStatus = async () => {
+    await taskApi.updateStatus(selectedTaskId, selectedStatus);
     setShowStatusModal(false);
     setSelectedTaskId(null);
   };
 
-  const handleDelete = (taskId, title) => {
+  const handleDelete = async (taskId, title) => {
     if (!window.confirm(`Opravdu chcete smazat úkol "${title}"?`)) return;
-    setTaskList((prev) => prev.filter((task) => task.id !== taskId));
+    await taskApi.remove(taskId);
   };
 
   if (!taskList || taskList.length === 0) {
@@ -135,7 +93,7 @@ function TaskPanelOverview({ tasks, currentUser }) {
               return (
                 <article
                   key={task.id}
-                  className={`task-panel__card task-panel__card--${task.color}`}
+                  className={`task-panel__card task-panel__card--${task.color || "yellow"}`}
                   onClick={() => navigate(`/tasks/${task.id}`)}
                 >
                   <div className="task-panel__card-header">
@@ -145,31 +103,28 @@ function TaskPanelOverview({ tasks, currentUser }) {
                   <div className="task-panel__info">
                     <div className="task-panel__status-row">
                       <span className="task-panel__status-label">Stav:</span>
-                      <span className="task-panel__status-text">{task.status}</span>
+                      <span className="task-panel__status-text">{formatTaskStatus(task.status)}</span>
                     </div>
 
                     <div className="task-panel__row">
                       <span className="task-panel__label">Termín:</span>
-                      <span className="task-panel__value">{task.dueDate}</span>
+                      <span className="task-panel__value">{formatDisplayDate(task.deadline)}</span>
                     </div>
 
-                    <div className="task-panel__assignment-box">{task.relatedBed}</div>
+                    <div className="task-panel__assignment-box">{task.assignment}</div>
                   </div>
 
-                  <div
-                    className="task-panel__actions"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+                  <div className="task-panel__actions" onClick={(event) => event.stopPropagation()}>
                     <button
                       type="button"
                       className={`task-panel__button ${
-                        task.status === "dokončený"
+                        task.status === "done"
                           ? "task-panel__button--done"
                           : "task-panel__button--complete"
                       }`}
                       onClick={() => openStatusModal(task)}
                     >
-                      {task.status === "dokončený" ? "✔ Hotovo" : "✓ Dokončit"}
+                      {task.status === "done" ? "✔ Hotovo" : "✓ Dokončit"}
                     </button>
 
                     {canEdit && (

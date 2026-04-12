@@ -1,76 +1,98 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { gardenBedApi } from "../../services/api/gardenBedApi";
+import { subscribeToDbChanges } from "../../services/api/mockDb";
 import "./GardenBedOverview.css";
 
-const INITIAL_BEDS = [
-  { id: 1, name: "Záhon A1", status: "obsazený", gardener: "Anna" },
-  { id: 2, name: "Záhon A2", status: "obsazený", gardener: "David" },
-  { id: 3, name: "Záhon horní", status: "obsazený", gardener: "Karel" },
-  { id: 4, name: "Záhon dolní", status: "volný", gardener: null },
-  { id: 5, name: "Záhon B3", status: "volný", gardener: null },
-];
-
-const CURRENT_USER = "Anna";
-const IS_ADMIN = true;
-
-export default function GardenBedOverview() {
+export default function GardenBedOverview({ currentUser }) {
   const navigate = useNavigate();
 
-  const [beds, setBeds] = useState(INITIAL_BEDS);
+  const currentUserName = currentUser?.name || "Anna";
+  const isAdmin = currentUser?.role === "Správce";
+
+  const [beds, setBeds] = useState([]);
   const [filter, setFilter] = useState("všechny");
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBedName, setNewBedName] = useState("");
   const [notification, setNotification] = useState(null);
 
+  const counts = useMemo(
+    () => ({
+      all: beds.length,
+      occupied: beds.filter((b) => b.status === "obsazený").length,
+      free: beds.filter((b) => b.status === "volný").length,
+    }),
+    [beds]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBeds = async () => {
+      const data = await gardenBedApi.list();
+      if (isMounted) setBeds(data);
+    };
+
+    loadBeds();
+
+    const unsubscribe = subscribeToDbChanges(loadBeds);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 2500);
+    window.setTimeout(() => setNotification(null), 2500);
   };
 
-  const handleRelease = (id) => {
-    setBeds((prev) =>
-      prev.map((b) =>
-        b.id === id ? { ...b, status: "volný", gardener: null } : b
-      )
-    );
+  const handleRelease = async (id) => {
+    await gardenBedApi.release(id);
     notify("Záhon byl uvolněn.");
   };
 
-  const handleLeave = (id) => {
-    setBeds((prev) =>
-      prev.map((b) =>
-        b.id === id ? { ...b, status: "volný", gardener: null } : b
-      )
-    );
+  const handleLeave = async (id) => {
+    await gardenBedApi.release(id);
     notify("Opustili jste záhon.");
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Opravdu smazat tento záhon?")) return;
-    setBeds((prev) => prev.filter((b) => b.id !== id));
+    await gardenBedApi.remove(id);
     notify("Záhon byl smazán.", "error");
   };
 
-  const handleAddTask = (name) => notify(`Úkol přidán k záhonu „${name}".`);
-  const handleReport = (name) => notify(`Záhon „${name}" byl nahlášen.`);
-  const handleEdit = (name) => notify(`Upravit záhon „${name}" (zatím nedostupné).`);
+  const handleAddTask = (name) => notify(`Úkol přidán k záhonu „${name}”.`);
+  const handleReport = (name) => notify(`Záhon „${name}” byl nahlášen.`);
+  const handleEdit = (name) => notify(`Upravit záhon „${name}” (zatím nedostupné).`);
 
-  const handleReserve = (id, name) => {
-    setBeds((prev) =>
-      prev.map((b) =>
-        b.id === id ? { ...b, status: "obsazený", gardener: CURRENT_USER } : b
-      )
-    );
-    notify(`Rezervovali jste záhon „${name}".`);
+  const handleReserve = async (id, name) => {
+    await gardenBedApi.reserve(id, currentUserName);
+    notify(`Rezervovali jste záhon „${name}”.`);
+  };
+
+  const handleCreateBed = async () => {
+    const trimmedName = newBedName.trim();
+    if (!trimmedName) return;
+
+    await gardenBedApi.create({
+      code: trimmedName,
+      name: trimmedName,
+      description: "Nově vytvořený záhon.",
+    });
+
+    setNewBedName("");
+    setShowAddModal(false);
+    notify(`Záhon „${trimmedName}” byl přidán.`);
   };
 
   const goToDetail = (id) => {
     navigate(`/garden-beds/${id}`);
   };
 
-  const filtered = beds.filter(
-    (b) => filter === "všechny" || b.status === filter
-  );
+  const filtered = beds.filter((b) => filter === "všechny" || b.status === filter);
 
   return (
     <>
@@ -80,7 +102,7 @@ export default function GardenBedOverview() {
             <div className="gbl-globe">🌐</div>
             <h1 className="gbl-title">Správa záhonů</h1>
           </div>
-          {IS_ADMIN && (
+          {isAdmin && (
             <button className="gbl-btn-add" onClick={() => setShowAddModal(true)}>
               + Přidat nový záhon (Admin)
             </button>
@@ -95,22 +117,18 @@ export default function GardenBedOverview() {
               onClick={() => setFilter(f)}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
-              {f === "všechny" && ` (${beds.length})`}
-              {f === "obsazený" &&
-                ` (${beds.filter((b) => b.status === "obsazený").length})`}
-              {f === "volný" &&
-                ` (${beds.filter((b) => b.status === "volný").length})`}
+              {f === "všechny" && ` (${counts.all})`}
+              {f === "obsazený" && ` (${counts.occupied})`}
+              {f === "volný" && ` (${counts.free})`}
             </button>
           ))}
         </div>
 
         <div className="gbl-grid">
-          {filtered.length === 0 && (
-            <div className="gbl-empty">Žádné záhony k zobrazení.</div>
-          )}
+          {filtered.length === 0 && <div className="gbl-empty">Žádné záhony k zobrazení.</div>}
 
           {filtered.map((bed) => {
-            const isOwner = bed.gardener === CURRENT_USER;
+            const isOwner = bed.gardener === currentUserName;
             const isOccupied = bed.status === "obsazený";
 
             return (
@@ -133,22 +151,22 @@ export default function GardenBedOverview() {
 
                 <span className={`gbl-status ${bed.status}`}>{bed.status}</span>
 
-                <div
-                  className="gbl-actions"
-                  onClick={(event) => event.stopPropagation()}
-                >
+                <div className="gbl-actions" onClick={(event) => event.stopPropagation()}>
                   {isOccupied && isOwner && (
                     <button className="gbl-action leave" onClick={() => handleLeave(bed.id)}>
                       Opustit
                     </button>
                   )}
-                  {isOccupied && !isOwner && IS_ADMIN && (
+                  {isOccupied && !isOwner && isAdmin && (
                     <button className="gbl-action release" onClick={() => handleRelease(bed.id)}>
                       Uvolnit
                     </button>
                   )}
                   {!isOccupied && (
-                    <button className="gbl-action reserve" onClick={() => handleReserve(bed.id, bed.name)}>
+                    <button
+                      className="gbl-action reserve"
+                      onClick={() => handleReserve(bed.id, bed.name)}
+                    >
                       Rezervovat
                     </button>
                   )}
@@ -158,12 +176,12 @@ export default function GardenBedOverview() {
                   <button className="gbl-action report" onClick={() => handleReport(bed.name)}>
                     Nahlásit
                   </button>
-                  {IS_ADMIN && (
+                  {isAdmin && (
                     <button className="gbl-action edit" onClick={() => handleEdit(bed.name)}>
                       Upravit
                     </button>
                   )}
-                  {IS_ADMIN && (
+                  {isAdmin && (
                     <button className="gbl-action delete" onClick={() => handleDelete(bed.id)}>
                       Smazat
                     </button>
@@ -175,9 +193,46 @@ export default function GardenBedOverview() {
         </div>
       </div>
 
-      {notification && (
-        <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>
+      {showAddModal && (
+        <div className="task-modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="task-status-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="task-status-modal__header">
+              <h2 className="task-status-modal__title">Přidat nový záhon</h2>
+              <button
+                type="button"
+                className="task-status-modal__close"
+                onClick={() => setShowAddModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="task-status-modal__body">
+              <input
+                className="task-detail__input"
+                value={newBedName}
+                onChange={(e) => setNewBedName(e.target.value)}
+                placeholder="Např. Záhon C1"
+              />
+            </div>
+
+            <div className="task-status-modal__footer">
+              <button type="button" className="task-status-modal__save" onClick={handleCreateBed}>
+                Uložit
+              </button>
+              <button
+                type="button"
+                className="task-status-modal__cancel"
+                onClick={() => setShowAddModal(false)}
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {notification && <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>}
     </>
   );
 }

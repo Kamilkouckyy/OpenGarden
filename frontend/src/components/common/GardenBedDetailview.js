@@ -1,58 +1,39 @@
-import React from "react";
-import { Link, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { gardenBedApi } from "../../services/api/gardenBedApi";
+import { subscribeToDbChanges } from "../../services/api/mockDb";
 import "./GardenBedDetailview.css";
-
-const MOCK_BEDS = [
-  {
-    id: 1,
-    code: "A1",
-    name: "Záhon A1",
-    status: "obsazený",
-    gardener: "Anna",
-    description: "Záhon určený pro pěstování rajčat a bylinek.",
-  },
-  {
-    id: 2,
-    code: "A2",
-    name: "Záhon A2",
-    status: "obsazený",
-    gardener: "David",
-    description: "Záhon rezervovaný pro sezónní zeleninu.",
-  },
-  {
-    id: 3,
-    code: "H1",
-    name: "Záhon horní",
-    status: "obsazený",
-    gardener: "Karel",
-    description: "Vyvýšený záhon v horní části zahrady.",
-  },
-  {
-    id: 4,
-    code: "D1",
-    name: "Záhon dolní",
-    status: "volný",
-    gardener: null,
-    description: "Volný záhon připravený k rezervaci.",
-  },
-  {
-    id: 5,
-    code: "B3",
-    name: "Záhon B3",
-    status: "volný",
-    gardener: null,
-    description: "Záhon vhodný pro kořenovou zeleninu.",
-  },
-];
 
 export default function GardenBedDetailview({ currentUser }) {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [bed, setBed] = useState(undefined);
 
-  const bed = MOCK_BEDS.find((item) => String(item.id) === String(id));
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBed = async () => {
+      const data = await gardenBedApi.getById(id);
+      if (isMounted) setBed(data);
+    };
+
+    loadBed();
+    const unsubscribe = subscribeToDbChanges(loadBed);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [id]);
+
   const isAdmin = currentUser?.role === "Správce";
   const isOwner = bed?.gardener === currentUser?.name;
   const canRelease = bed && bed.status === "obsazený" && (isOwner || isAdmin);
   const canReserve = bed && bed.status === "volný";
+
+  if (bed === undefined) {
+    return null;
+  }
 
   if (!bed) {
     return (
@@ -72,21 +53,22 @@ export default function GardenBedDetailview({ currentUser }) {
     );
   }
 
-  const handleReserve = () => {
-    window.alert(`Rezervace záhonu „${bed.name}“ bude napojena později.`);
+  const handleReserve = async () => {
+    await gardenBedApi.reserve(bed.id, currentUser?.name || "Anna");
   };
 
-  const handleRelease = () => {
-    window.alert(`Uvolnění záhonu „${bed.name}“ bude napojeno později.`);
+  const handleRelease = async () => {
+    await gardenBedApi.release(bed.id);
   };
 
   const handleEdit = () => {
     window.alert(`Úprava záhonu „${bed.name}“ bude doplněna později.`);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm(`Opravdu chcete smazat záhon „${bed.name}“?`)) return;
-    window.alert(`Mazání záhonu „${bed.name}“ bude napojeno později.`);
+    await gardenBedApi.remove(bed.id);
+    navigate("/garden-beds");
   };
 
   return (
@@ -109,56 +91,42 @@ export default function GardenBedDetailview({ currentUser }) {
 
           <div className="garden-bed-detail__row">
             <span className="garden-bed-detail__label">Zahradník</span>
-            <span className="garden-bed-detail__value">
-              {bed.gardener ? bed.gardener : "Nikdo"}
-            </span>
+            <span className="garden-bed-detail__value">{bed.gardener ? bed.gardener : "Nikdo"}</span>
           </div>
 
-          <div className="garden-bed-detail__description">
+          <div className="garden-bed-detail__row garden-bed-detail__row--top">
             <span className="garden-bed-detail__label">Popis</span>
-            <p className="garden-bed-detail__text">
-              {bed.description ? bed.description : "Popis není k dispozici."}
-            </p>
+            <div className="garden-bed-detail__value garden-bed-detail__description">
+              {bed.description}
+            </div>
           </div>
         </div>
 
         <div className="garden-bed-detail__actions">
-          <button
-            type="button"
-            className="garden-bed-detail__button"
-            onClick={handleReserve}
-            disabled={!canReserve}
-            title={
-              !canReserve
-                ? "Rezervace není pro tento záhon aktuálně dostupná."
-                : ""
-            }
-          >
-            Rezervovat
-          </button>
+          {canReserve && (
+            <button className="garden-bed-detail__button" onClick={handleReserve}>
+              Rezervovat
+            </button>
+          )}
 
           {canRelease && (
             <button
-              type="button"
               className="garden-bed-detail__button garden-bed-detail__button--warning"
               onClick={handleRelease}
             >
-              Uvolnit
+              {isOwner ? "Opustit" : "Uvolnit"}
             </button>
           )}
 
           {isAdmin && (
             <>
               <button
-                type="button"
                 className="garden-bed-detail__button garden-bed-detail__button--secondary"
                 onClick={handleEdit}
               >
                 Upravit
               </button>
-
               <button
-                type="button"
                 className="garden-bed-detail__button garden-bed-detail__button--danger"
                 onClick={handleDelete}
               >
