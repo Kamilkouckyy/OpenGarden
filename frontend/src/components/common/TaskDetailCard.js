@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import TaskStatusModal from "./TaskStatusModal";
 import { taskApi } from "../../services/api/taskApi";
 import { subscribeToDbChanges } from "../../services/api/mockDb";
-import TaskStatusModal from "./TaskStatusModal";
 import "./TaskDetailCard.css";
 
 function formatDate(value) {
   if (!value) return "";
-  const date = new Date(value);
+  const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("en-US", {
@@ -26,35 +26,43 @@ function getStatusText(status) {
 
 export default function TaskDetailCard({ currentUser }) {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const [task, setTask] = useState(undefined);
+  const [task, setTask] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("open");
   const [formData, setFormData] = useState(null);
 
+  const loadTask = async () => {
+    setIsLoading(true);
+    try {
+      const item = await taskApi.getById(id);
+      setTask(item);
+      setFormData(item);
+      setSelectedStatus(item?.status || "open");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let isMounted = true;
-
-    const loadTask = async () => {
-      const data = await taskApi.getById(id);
-      if (!isMounted) return;
-      setTask(data);
-      setFormData(data);
-      setSelectedStatus(data?.status || "open");
-    };
-
     loadTask();
-    const unsubscribe = subscribeToDbChanges(loadTask);
 
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    const unsubscribe = subscribeToDbChanges(() => {
+      loadTask();
+    });
+
+    return unsubscribe;
   }, [id]);
 
-  if (task === undefined) {
-    return null;
+  if (isLoading) {
+    return (
+      <section className="task-detail">
+        <div className="task-detail__card">
+          <p className="task-detail__empty">Loading task...</p>
+        </div>
+      </section>
+    );
   }
 
   if (!task || !formData) {
@@ -89,10 +97,17 @@ export default function TaskDetailCard({ currentUser }) {
   };
 
   const handleSaveEdit = async () => {
-    const updatedTask = await taskApi.update(task.id, formData);
-    setTask(updatedTask);
-    setSelectedStatus(updatedTask.status);
+    await taskApi.update(task.id, {
+      title: formData.title,
+      resolver: formData.resolver,
+      deadline: formData.deadline,
+      assignment: formData.assignment,
+      description: formData.description,
+      status: formData.status,
+    });
+
     setIsEditMode(false);
+    await loadTask();
   };
 
   const handleCancelEdit = () => {
@@ -103,7 +118,7 @@ export default function TaskDetailCard({ currentUser }) {
   const handleDelete = async () => {
     if (!window.confirm(`Do you really want to delete task "${task.title}"?`)) return;
     await taskApi.remove(task.id);
-    navigate("/tasks");
+    window.location.href = "/tasks";
   };
 
   const handleOpenStatusModal = () => {
@@ -112,10 +127,9 @@ export default function TaskDetailCard({ currentUser }) {
   };
 
   const handleSaveStatus = async () => {
-    const updatedTask = await taskApi.updateStatus(task.id, selectedStatus);
-    setTask(updatedTask);
-    setFormData(updatedTask);
+    await taskApi.updateStatus(task.id, selectedStatus);
     setShowStatusModal(false);
+    await loadTask();
   };
 
   return (
@@ -199,7 +213,7 @@ export default function TaskDetailCard({ currentUser }) {
                 />
               ) : (
                 <div className="task-detail__value-box task-detail__value-box--textarea">
-                  {task.description.split("\n").map((line, index) => (
+                  {task.description?.split("\n").map((line, index) => (
                     <p key={index} className="task-detail__paragraph">
                       {line}
                     </p>
@@ -216,7 +230,11 @@ export default function TaskDetailCard({ currentUser }) {
                   {getStatusText(task.status)}
                 </div>
 
-                <button type="button" className="task-detail__btn" onClick={handleOpenStatusModal}>
+                <button
+                  type="button"
+                  className="task-detail__btn"
+                  onClick={handleOpenStatusModal}
+                >
                   Status Update
                 </button>
               </div>
@@ -225,7 +243,11 @@ export default function TaskDetailCard({ currentUser }) {
             <div className="task-detail__edit-row">
               {canEdit && !isEditMode && (
                 <>
-                  <button type="button" className="task-detail__btn" onClick={handleEditClick}>
+                  <button
+                    type="button"
+                    className="task-detail__btn"
+                    onClick={handleEditClick}
+                  >
                     Edit
                   </button>
 
@@ -241,7 +263,11 @@ export default function TaskDetailCard({ currentUser }) {
 
               {canEdit && isEditMode && (
                 <>
-                  <button type="button" className="task-detail__btn" onClick={handleSaveEdit}>
+                  <button
+                    type="button"
+                    className="task-detail__btn"
+                    onClick={handleSaveEdit}
+                  >
                     Save
                   </button>
 
