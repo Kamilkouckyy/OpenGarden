@@ -1,5 +1,5 @@
 .garden-bed-detail {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 24px 16px;
 }
@@ -54,20 +54,16 @@
 }
 
 .garden-bed-detail__status {
-  text-transform: capitalize;
   font-weight: 600;
+  text-transform: capitalize;
 }
 
-.garden-bed-detail__status--available {
+.garden-bed-detail__status--volný {
   color: #2e7d32;
 }
 
-.garden-bed-detail__status--assigned {
+.garden-bed-detail__status--obsazený {
   color: #1565c0;
-}
-
-.garden-bed-detail__status--maintenance {
-  color: #ef6c00;
 }
 
 .garden-bed-detail__description {
@@ -80,10 +76,16 @@
 }
 
 .garden-bed-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 24px;
 }
 
 .garden-bed-detail__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 10px 18px;
   border: none;
   border-radius: 8px;
@@ -91,10 +93,32 @@
   color: #ffffff;
   font-size: 15px;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .garden-bed-detail__button:hover {
   opacity: 0.92;
+}
+
+.garden-bed-detail__button:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.garden-bed-detail__button--secondary {
+  background: #eceff1;
+  color: #1f1f1f;
+}
+
+.garden-bed-detail__button--warning {
+  background: #ef6c00;
+  color: #ffffff;
+}
+
+.garden-bed-detail__button--danger {
+  background: #c62828;
+  color: #ffffff;
 }
 
 .garden-bed-detail__empty {

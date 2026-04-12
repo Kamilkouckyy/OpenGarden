@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./GardenBedOverview.css";
 
 const INITIAL_BEDS = [
@@ -9,14 +10,14 @@ const INITIAL_BEDS = [
   { id: 5, name: "Záhon B3", status: "volný", gardener: null },
 ];
 
-// Simulated current user 
 const CURRENT_USER = "Anna";
 const IS_ADMIN = true;
 
 export default function GardenBedOverview() {
-  
+  const navigate = useNavigate();
+
   const [beds, setBeds] = useState(INITIAL_BEDS);
-  const [filter, setFilter] = useState("všechny"); 
+  const [filter, setFilter] = useState("všechny");
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBedName, setNewBedName] = useState("");
   const [notification, setNotification] = useState(null);
@@ -53,7 +54,7 @@ export default function GardenBedOverview() {
   const handleAddTask = (name) => notify(`Úkol přidán k záhonu „${name}".`);
   const handleReport = (name) => notify(`Záhon „${name}" byl nahlášen.`);
   const handleEdit = (name) => notify(`Upravit záhon „${name}" (zatím nedostupné).`);
-  
+
   const handleReserve = (id, name) => {
     setBeds((prev) =>
       prev.map((b) =>
@@ -63,6 +64,9 @@ export default function GardenBedOverview() {
     notify(`Rezervovali jste záhon „${name}".`);
   };
 
+  const goToDetail = (id) => {
+    navigate(`/garden-beds/${id}`);
+  };
 
   const filtered = beds.filter(
     (b) => filter === "všechny" || b.status === filter
@@ -70,106 +74,107 @@ export default function GardenBedOverview() {
 
   return (
     <>
-
-
       <div className="gbl-card">
-
-          {/* Header */}
-          <div className="gbl-header">
-            <div className="gbl-title-wrap">
-              <div className="gbl-globe">🌐</div>
-              <h1 className="gbl-title">Správa záhonů</h1>
-            </div>
-            {IS_ADMIN && (
-              <button className="gbl-btn-add" onClick={() => setShowAddModal(true)}>
-                + Přidat nový záhon (Admin)
-              </button>
-            )}
+        <div className="gbl-header">
+          <div className="gbl-title-wrap">
+            <div className="gbl-globe">🌐</div>
+            <h1 className="gbl-title">Správa záhonů</h1>
           </div>
+          {IS_ADMIN && (
+            <button className="gbl-btn-add" onClick={() => setShowAddModal(true)}>
+              + Přidat nový záhon (Admin)
+            </button>
+          )}
+        </div>
 
-          {/* Filters */}
-          <div className="gbl-filters">
-            {["všechny", "obsazený", "volný"].map((f) => (
-              <button
-                key={f}
-                className={`gbl-filter-btn${filter === f ? " active" : ""}`}
-                onClick={() => setFilter(f)}
+        <div className="gbl-filters">
+          {["všechny", "obsazený", "volný"].map((f) => (
+            <button
+              key={f}
+              className={`gbl-filter-btn${filter === f ? " active" : ""}`}
+              onClick={() => setFilter(f)}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === "všechny" && ` (${beds.length})`}
+              {f === "obsazený" &&
+                ` (${beds.filter((b) => b.status === "obsazený").length})`}
+              {f === "volný" &&
+                ` (${beds.filter((b) => b.status === "volný").length})`}
+            </button>
+          ))}
+        </div>
+
+        <div className="gbl-grid">
+          {filtered.length === 0 && (
+            <div className="gbl-empty">Žádné záhony k zobrazení.</div>
+          )}
+
+          {filtered.map((bed) => {
+            const isOwner = bed.gardener === CURRENT_USER;
+            const isOccupied = bed.status === "obsazený";
+
+            return (
+              <div
+                key={bed.id}
+                className={`gbl-bed-card ${bed.status}`}
+                onClick={() => goToDetail(bed.id)}
+                style={{ cursor: "pointer" }}
               >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-                {f === "všechny" && ` (${beds.length})`}
-                {f === "obsazený" && ` (${beds.filter((b) => b.status === "obsazený").length})`}
-                {f === "volný" && ` (${beds.filter((b) => b.status === "volný").length})`}
-              </button>
-            ))}
-          </div>
+                <div className="gbl-bed-name">{bed.name}</div>
 
-          {/* Bed Grid */}
-          <div className="gbl-grid">
-            {filtered.length === 0 && (
-              <div className="gbl-empty">Žádné záhony k zobrazení.</div>
-            )}
-
-            {filtered.map((bed) => {
-              const isOwner = bed.gardener === CURRENT_USER;
-              const isOccupied = bed.status === "obsazený";
-
-              return (
-                <div key={bed.id} className={`gbl-bed-card ${bed.status}`}>
-                  <div className="gbl-bed-name">{bed.name}</div>
-
-                  <div className="gbl-bed-info">
-                    Stav: <strong>{bed.status}</strong>
-                  </div>
-                  {isOccupied && bed.gardener && (
-                    <div className="gbl-bed-info">
-                      Zahradník: <strong>{bed.gardener}</strong>
-                    </div>
-                  )}
-
-                  <span className={`gbl-status ${bed.status}`}>{bed.status}</span>
-
-                  <div className="gbl-actions">
-                    {isOccupied && isOwner && (
-                      <button className="gbl-action leave" onClick={() => handleLeave(bed.id)}>
-                        Opustit
-                      </button>
-                    )}
-                    {isOccupied && !isOwner && IS_ADMIN && (
-                      <button className="gbl-action release" onClick={() => handleRelease(bed.id)}>
-                        Uvolnit
-                      </button>
-                    )}
-                    {!isOccupied && (
-                      <button className="gbl-action reserve" onClick={() => handleReserve(bed.id, bed.name)}>
-                        Rezervovat
-                      </button>
-                    )}
-                    <button className="gbl-action task" onClick={() => handleAddTask(bed.name)}>
-                      + Úkol
-                    </button>
-                    <button className="gbl-action report" onClick={() => handleReport(bed.name)}>
-                      Nahlásit
-                    </button>
-                    {IS_ADMIN && (
-                      <button className="gbl-action edit" onClick={() => handleEdit(bed.name)}>
-                        Upravit
-                      </button>
-                    )}
-                    {IS_ADMIN && (
-                      <button className="gbl-action delete" onClick={() => handleDelete(bed.id)}>
-                        Smazat
-                      </button>
-                    )}
-                  </div>
+                <div className="gbl-bed-info">
+                  Stav: <strong>{bed.status}</strong>
                 </div>
-              );
-            })}
-          </div>
+                {isOccupied && bed.gardener && (
+                  <div className="gbl-bed-info">
+                    Zahradník: <strong>{bed.gardener}</strong>
+                  </div>
+                )}
+
+                <span className={`gbl-status ${bed.status}`}>{bed.status}</span>
+
+                <div
+                  className="gbl-actions"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {isOccupied && isOwner && (
+                    <button className="gbl-action leave" onClick={() => handleLeave(bed.id)}>
+                      Opustit
+                    </button>
+                  )}
+                  {isOccupied && !isOwner && IS_ADMIN && (
+                    <button className="gbl-action release" onClick={() => handleRelease(bed.id)}>
+                      Uvolnit
+                    </button>
+                  )}
+                  {!isOccupied && (
+                    <button className="gbl-action reserve" onClick={() => handleReserve(bed.id, bed.name)}>
+                      Rezervovat
+                    </button>
+                  )}
+                  <button className="gbl-action task" onClick={() => handleAddTask(bed.name)}>
+                    + Úkol
+                  </button>
+                  <button className="gbl-action report" onClick={() => handleReport(bed.name)}>
+                    Nahlásit
+                  </button>
+                  {IS_ADMIN && (
+                    <button className="gbl-action edit" onClick={() => handleEdit(bed.name)}>
+                      Upravit
+                    </button>
+                  )}
+                  {IS_ADMIN && (
+                    <button className="gbl-action delete" onClick={() => handleDelete(bed.id)}>
+                      Smazat
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-
-
-      {/* Notification Toast */}
       {notification && (
         <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>
       )}
