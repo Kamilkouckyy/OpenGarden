@@ -1,137 +1,97 @@
-import React, { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { tasksApi } from "../../services/api";
+import { useUser } from "../../context/UserContext";
 import TaskStatusModal from "./TaskStatusModal";
 import "./TaskDetailCard.css";
 
-const MOCK_TASKS = [
-  {
-    id: 1,
-    title: "Weeding garden bed #3",
-    resolver: "Eva Nováková",
-    deadline: "2024-04-30",
-    assignment: "Zahrádka A3",
-    description:
-      "Weed garden bed #3, remove all the weeds around the vegetables.\nMake sure to remove the roots completely.",
-    status: "in_progress",
-    author: "Anna",
-  },
-  {
-    id: 2,
-    title: "Sweep the entire garden",
-    resolver: "Anna",
-    deadline: "2024-05-03",
-    assignment: "Whole garden",
-    description: "Sweep all common paths and shared areas in the garden.",
-    status: "open",
-    author: "Anna",
-  },
-  {
-    id: 3,
-    title: "Repair rake",
-    resolver: "David",
-    deadline: "2024-05-08",
-    assignment: "Equipment",
-    description: "Check the damaged rake and repair or replace the broken handle.",
-    status: "done",
-    author: "David",
-  },
-];
+const STATUS_LABEL = { open: "Otevřený", in_progress: "Probíhá", done: "Dokončený" };
 
 function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("cs-CZ", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function getStatusText(status) {
-  if (status === "open") return "Open";
-  if (status === "in_progress") return "In progress";
-  if (status === "done") return "Done";
-  return status;
-}
-
-export default function TaskDetailCard({ currentUser }) {
+export default function TaskDetailCard() {
   const { id } = useParams();
+  const { user } = useUser();
 
-  const taskFromData = useMemo(
-    () => MOCK_TASKS.find((item) => String(item.id) === String(id)),
-    [id]
-  );
-
-  const [task, setTask] = useState(taskFromData);
+  const [task, setTask] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(taskFromData?.status || "open");
-  const [formData, setFormData] = useState(taskFromData);
+  const [selectedStatus, setSelectedStatus] = useState("open");
+  const [formData, setFormData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState(null);
 
-  if (!task) {
-    return (
-      <section className="task-detail">
-        <div className="task-detail__card">
-          <p className="task-detail__empty">Task was not found.</p>
-          <div className="task-detail__footer-actions">
-            <Link to="/tasks" className="task-detail__btn task-detail__btn--secondary">
-              Return to Task Overview
-            </Link>
-          </div>
+  const notify = (msg, type = "success") => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 2800);
+  };
+
+  const load = useCallback(async () => {
+    try {
+      const data = await tasksApi.get(id);
+      setTask(data);
+      setFormData(data);
+      setSelectedStatus(data.status);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <div className="task-detail__loading">Načítám…</div>;
+  if (notFound) return (
+    <section className="task-detail">
+      <div className="task-detail__card">
+        <p className="task-detail__empty">Úkol nebyl nalezen.</p>
+        <div className="task-detail__footer-actions">
+          <Link to="/tasks" className="task-detail__btn task-detail__btn--secondary">Zpět na přehled</Link>
         </div>
-      </section>
-    );
-  }
+      </div>
+    </section>
+  );
 
-  const isAdmin = currentUser?.role === "Správce";
-  const isAuthor = currentUser?.name === task.author;
+  const isAdmin = user?.role === "admin";
+  const isAuthor = user?.id === task.authorId;
   const canEdit = isAdmin || isAuthor;
 
-  const handleFieldChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    try {
+      const updated = await tasksApi.update(id, {
+        title: formData.title,
+        description: formData.description,
+        dueDate: formData.dueDate || undefined,
+      }, user);
+      setTask(updated);
+      setIsEditMode(false);
+      notify("Úkol byl upraven.");
+    } catch (err) {
+      notify(err.message || "Uložení se nezdařilo.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleEditClick = () => {
-    setFormData(task);
-    setIsEditMode(true);
-  };
-
-  const handleSaveEdit = () => {
-    setTask(formData);
-    setSelectedStatus(formData.status);
-    setIsEditMode(false);
-  };
-
-  const handleCancelEdit = () => {
-    setFormData(task);
-    setIsEditMode(false);
-  };
-
-  const handleDelete = () => {
-    if (!window.confirm(`Do you really want to delete task "${task.title}"?`)) return;
-    window.alert(`Deleting task "${task.title}" will be connected later.`);
-  };
-
-  const handleOpenStatusModal = () => {
-    setSelectedStatus(task.status);
-    setShowStatusModal(true);
-  };
-
-  const handleSaveStatus = () => {
-    setTask((prev) => ({
-      ...prev,
-      status: selectedStatus,
-    }));
-    setFormData((prev) => ({
-      ...prev,
-      status: selectedStatus,
-    }));
-    setShowStatusModal(false);
+  const handleSaveStatus = async () => {
+    try {
+      const updated = await tasksApi.toggleStatus(id, user);
+      setTask(updated);
+      setSelectedStatus(updated.status);
+      setShowStatusModal(false);
+      notify("Stav úkolu byl změněn.");
+    } catch (err) {
+      notify(err.message || "Změna stavu se nezdařila.", "error");
+    }
   };
 
   return (
@@ -140,104 +100,44 @@ export default function TaskDetailCard({ currentUser }) {
         <div className="task-detail__card">
           <div className="task-detail__form">
             <div className="task-detail__field">
-              <label className="task-detail__label">Title</label>
-              {isEditMode ? (
-                <input
-                  className="task-detail__input"
-                  value={formData.title}
-                  onChange={(e) => handleFieldChange("title", e.target.value)}
-                />
-              ) : (
-                <div className="task-detail__value-box">{task.title}</div>
-              )}
+              <label className="task-detail__label">Název</label>
+              {isEditMode
+                ? <input className="task-detail__input" value={formData.title} onChange={(e) => setFormData(p => ({...p, title: e.target.value}))} />
+                : <div className="task-detail__value-box">{task.title}</div>
+              }
             </div>
 
             <div className="task-detail__field">
-              <label className="task-detail__label">Resolver</label>
-              {isEditMode ? (
-                <input
-                  className="task-detail__input"
-                  value={formData.resolver}
-                  onChange={(e) => handleFieldChange("resolver", e.target.value)}
-                />
-              ) : (
-                <div className="task-detail__value-box">{task.resolver}</div>
-              )}
+              <label className="task-detail__label">Kontext</label>
+              <div className="task-detail__value-box">{task.context}</div>
             </div>
 
             <div className="task-detail__field task-detail__field--small">
-              <label className="task-detail__label">Task deadline</label>
-              {isEditMode ? (
-                <div className="task-detail__deadline-wrap">
-                  <input
-                    className="task-detail__input task-detail__input--small"
-                    value={formData.deadline}
-                    onChange={(e) => handleFieldChange("deadline", e.target.value)}
-                    placeholder="YYYY-MM-DD"
-                  />
-                  <input
-                    type="date"
-                    className="task-detail__input task-detail__input--date"
-                    value={formData.deadline}
-                    onChange={(e) => handleFieldChange("deadline", e.target.value)}
-                  />
-                </div>
-              ) : (
-                <div className="task-detail__value-box task-detail__value-box--small">
-                  {formatDate(task.deadline)}
-                </div>
-              )}
-            </div>
-
-            <div className="task-detail__field task-detail__field--small">
-              <label className="task-detail__label">Assignment</label>
-              {isEditMode ? (
-                <input
-                  className="task-detail__input task-detail__input--small"
-                  value={formData.assignment}
-                  onChange={(e) => handleFieldChange("assignment", e.target.value)}
-                />
-              ) : (
-                <div className="task-detail__value-box task-detail__value-box--small">
-                  {task.assignment}
-                </div>
-              )}
+              <label className="task-detail__label">Termín</label>
+              {isEditMode
+                ? <input type="date" className="task-detail__input task-detail__input--small" value={formData.dueDate || ""} onChange={(e) => setFormData(p => ({...p, dueDate: e.target.value}))} />
+                : <div className="task-detail__value-box task-detail__value-box--small">{formatDate(task.dueDate)}</div>
+              }
             </div>
 
             <div className="task-detail__field">
-              <label className="task-detail__label">Description</label>
-              {isEditMode ? (
-                <textarea
-                  className="task-detail__textarea"
-                  rows={5}
-                  value={formData.description}
-                  onChange={(e) => handleFieldChange("description", e.target.value)}
-                />
-              ) : (
-                <div className="task-detail__value-box task-detail__value-box--textarea">
-                  {task.description.split("\n").map((line, index) => (
-                    <p key={index} className="task-detail__paragraph">
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              )}
+              <label className="task-detail__label">Popis</label>
+              {isEditMode
+                ? <textarea className="task-detail__textarea" rows={4} value={formData.description || ""} onChange={(e) => setFormData(p => ({...p, description: e.target.value}))} />
+                : <div className="task-detail__value-box task-detail__value-box--textarea">
+                    {task.description || <em>Bez popisu</em>}
+                  </div>
+              }
             </div>
 
             <div className="task-detail__status-row">
-              <span className="task-detail__label">Status</span>
-
+              <span className="task-detail__label">Stav</span>
               <div className="task-detail__status-right">
                 <div className="task-detail__value-box task-detail__value-box--status">
-                  {getStatusText(task.status)}
+                  {STATUS_LABEL[task.status] || task.status}
                 </div>
-
-                <button
-                  type="button"
-                  className="task-detail__btn"
-                  onClick={handleOpenStatusModal}
-                >
-                  Status Update
+                <button type="button" className="task-detail__btn" onClick={() => setShowStatusModal(true)}>
+                  Změnit stav
                 </button>
               </div>
             </div>
@@ -245,50 +145,35 @@ export default function TaskDetailCard({ currentUser }) {
             <div className="task-detail__edit-row">
               {canEdit && !isEditMode && (
                 <>
-                  <button
-                    type="button"
-                    className="task-detail__btn"
-                    onClick={handleEditClick}
-                  >
-                    Edit
+                  <button type="button" className="task-detail__btn" onClick={() => { setFormData(task); setIsEditMode(true); }}>
+                    Upravit
                   </button>
-
-                  <button
-                    type="button"
-                    className="task-detail__btn task-detail__btn--danger"
-                    onClick={handleDelete}
-                  >
-                    Delete
+                  <button type="button" className="task-detail__btn task-detail__btn--danger"
+                    onClick={async () => {
+                      if (!window.confirm(`Smazat úkol „${task.title}"?`)) return;
+                      try { await tasksApi.remove(id, user); window.location.href = "/tasks"; }
+                      catch (err) { notify(err.message || "Smazání se nezdařilo.", "error"); }
+                    }}>
+                    Smazat
                   </button>
                 </>
               )}
-
-              {canEdit && isEditMode && (
+              {isEditMode && (
                 <>
-                  <button
-                    type="button"
-                    className="task-detail__btn"
-                    onClick={handleSaveEdit}
-                  >
-                    Save
+                  <button type="button" className="task-detail__btn" onClick={handleSaveEdit} disabled={saving}>
+                    {saving ? "Ukládám…" : "Uložit"}
                   </button>
-
-                  <button
-                    type="button"
-                    className="task-detail__btn task-detail__btn--secondary"
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
+                  <button type="button" className="task-detail__btn task-detail__btn--secondary" onClick={() => setIsEditMode(false)}>
+                    Zrušit
                   </button>
                 </>
               )}
             </div>
 
             <div className="task-detail__divider" />
-
             <div className="task-detail__footer-actions">
               <Link to="/tasks" className="task-detail__btn task-detail__btn--secondary">
-                Return to Task Overview
+                Zpět na přehled úkolů
               </Link>
             </div>
           </div>
@@ -302,6 +187,8 @@ export default function TaskDetailCard({ currentUser }) {
         onSave={handleSaveStatus}
         onCancel={() => setShowStatusModal(false)}
       />
+
+      {notification && <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>}
     </>
   );
 }

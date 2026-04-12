@@ -4,6 +4,13 @@
   padding: 32px 16px;
 }
 
+.task-detail__loading {
+  text-align: center;
+  color: #7aaa90;
+  padding: 60px 0;
+  font-size: 1rem;
+}
+
 .task-detail__card {
   max-width: 900px;
   margin: 0 auto;

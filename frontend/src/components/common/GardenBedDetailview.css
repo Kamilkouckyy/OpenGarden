@@ -125,3 +125,32 @@
   text-align: center;
   color: #666666;
 }
+
+.garden-bed-detail__loading {
+  text-align: center;
+  color: #7aaa90;
+  padding: 60px 0;
+  font-size: 1rem;
+}
+
+.garden-bed-detail__edit-input {
+  font-size: 26px;
+  font-weight: 700;
+  border: 1.5px solid #cde3d8;
+  border-radius: 8px;
+  padding: 4px 10px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.garden-bed-detail__edit-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #cde3d8;
+  border-radius: 8px;
+  font-size: .95rem;
+  outline: none;
+  box-sizing: border-box;
+  resize: vertical;
+}
