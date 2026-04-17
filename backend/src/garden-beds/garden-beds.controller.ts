@@ -3,24 +3,23 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
   Post,
-  Req,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GardenBedsService } from './garden-beds.service';
 import { CreateGardenBedDto } from './dto/create-garden-bed.dto';
 import { UpdateGardenBedDto } from './dto/update-garden-bed.dto';
 
+const AUTH_HEADERS = [
+  { name: 'X-User-Id', description: 'ID přihlášeného uživatele', required: true },
+  { name: 'X-User-Role', description: '"admin" nebo "member"', required: false },
+];
+
 @ApiTags('garden-beds')
-@ApiBearerAuth()
 @Controller('garden-beds')
 export class GardenBedsController {
   constructor(private readonly gardenBedsService: GardenBedsService) {}
@@ -41,71 +40,51 @@ export class GardenBedsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
   @ApiOperation({ summary: 'Vytvoření záhonu (Admin)' })
+  @ApiHeader(AUTH_HEADERS[0])
   @ApiResponse({ status: 201, description: 'Záhon vytvořen' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
-  @ApiResponse({ status: 403, description: 'Pouze admin' })
   create(@Body() dto: CreateGardenBedDto) {
     return this.gardenBedsService.create(dto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
   @ApiOperation({ summary: 'Úprava záhonu (Admin)' })
+  @ApiHeader(AUTH_HEADERS[0])
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
-  @ApiResponse({ status: 403, description: 'Pouze admin' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateGardenBedDto) {
     return this.gardenBedsService.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiOperation({
-    summary: 'Smazání záhonu (Admin)',
-    description: 'Kaskádně smaže všechny linked tasky a reporty.',
-  })
+  @ApiOperation({ summary: 'Smazání záhonu (Admin)' })
+  @ApiHeader(AUTH_HEADERS[0])
   @ApiResponse({ status: 200, description: 'Smazáno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
-  @ApiResponse({ status: 403, description: 'Pouze admin' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.gardenBedsService.remove(id);
   }
 
   @Post(':id/claim')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Rezervace záhonu',
-    description: 'Gardener si nárokuje volný záhon. Max 1 záhon na uživatele.',
-  })
+  @ApiOperation({ summary: 'Rezervace záhonu' })
+  @ApiHeader(AUTH_HEADERS[0])
   @ApiResponse({ status: 201, description: 'Záhon rezervován' })
   @ApiResponse({ status: 400, description: 'Záhon není volný nebo uživatel již záhon má' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   claim(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
   ) {
-    const user = req.user as { id: number };
-    return this.gardenBedsService.claim(id, user.id);
+    return this.gardenBedsService.claim(id, parseInt(userId, 10));
   }
 
   @Post(':id/release')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Uvolnění záhonu',
-    description: 'Vlastník nebo Admin uvolní záhon.',
-  })
+  @ApiOperation({ summary: 'Uvolnění záhonu' })
+  @ApiHeader(AUTH_HEADERS[0])
+  @ApiHeader(AUTH_HEADERS[1])
   @ApiResponse({ status: 200, description: 'Záhon uvolněn' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   release(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.gardenBedsService.release(id, user.id, user.role === 'admin');
+    return this.gardenBedsService.release(id, parseInt(userId, 10), role === 'admin');
   }
 }

@@ -3,24 +3,20 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Put,
-  Req,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 
 @ApiTags('events')
-@ApiBearerAuth()
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
@@ -41,73 +37,68 @@ export class EventsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Vytvoření komunitní akce' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
   @ApiResponse({ status: 201, description: 'Akce vytvořena' })
   @ApiResponse({ status: 400, description: 'Datum v minulosti' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   create(
     @Body() dto: CreateEventDto,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
   ) {
-    const user = req.user as { id: number };
-    return this.eventsService.create(dto, user.id);
+    return this.eventsService.create(dto, parseInt(userId, 10));
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Úprava akce (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEventDto,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.eventsService.update(id, dto, user.id, user.role === 'admin');
+    return this.eventsService.update(id, dto, parseInt(userId, 10), role === 'admin');
   }
 
   @Patch(':id/cancel')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Zrušení akce (Author / Admin)',
-    description: 'Nastaví status na "cancelled". Linked úkoly jsou ovlivněny.',
-  })
+  @ApiOperation({ summary: 'Zrušení akce (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Akce zrušena' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   cancel(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.eventsService.cancel(id, user.id, user.role === 'admin');
+    return this.eventsService.cancel(id, parseInt(userId, 10), role === 'admin');
   }
 
   @Patch(':id/restore')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obnovení zrušené akce (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Akce obnovena' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   restore(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.eventsService.restore(id, user.id, user.role === 'admin');
+    return this.eventsService.restore(id, parseInt(userId, 10), role === 'admin');
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Smazání akce (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Smazáno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.eventsService.remove(id, user.id, user.role === 'admin');
+    return this.eventsService.remove(id, parseInt(userId, 10), role === 'admin');
   }
 
   @Get(':id/participations')
@@ -118,20 +109,15 @@ export class EventsController {
   }
 
   @Put(':id/participation')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Nastavení RSVP statusu (UC5)',
-    description: 'Upsert – vytvoří nebo aktualizuje účast uživatele na akci.',
-  })
+  @ApiOperation({ summary: 'Nastavení RSVP statusu (UC5)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
   @ApiResponse({ status: 200, description: 'Účast aktualizována' })
   @ApiResponse({ status: 400, description: 'Akce je zrušena' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   updateParticipation(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateParticipationDto,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
   ) {
-    const user = req.user as { id: number };
-    return this.eventsService.updateParticipation(id, user.id, dto);
+    return this.eventsService.updateParticipation(id, parseInt(userId, 10), dto);
   }
 }

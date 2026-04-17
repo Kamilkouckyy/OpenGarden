@@ -78,6 +78,21 @@
   border-color: #27a678;
 }
 
+.login-select {
+  padding: 10px 14px;
+  border: 1.5px solid #cde3d8;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  background: #fff;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.login-select:focus {
+  border-color: #27a678;
+}
+
 .login-error {
   color: #c0392b;
   font-size: 0.85rem;

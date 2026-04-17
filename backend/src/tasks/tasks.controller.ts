@@ -3,22 +3,18 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
   Post,
-  Req,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @ApiTags('tasks')
-@ApiBearerAuth()
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -39,65 +35,55 @@ export class TasksController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Vytvoření úkolu',
-    description:
-      'Context se generuje automaticky z linked entity. ' +
-      'linkedType a linkedId musí být vyplněny oba nebo ani jeden.',
-  })
+  @ApiOperation({ summary: 'Vytvoření úkolu' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
   @ApiResponse({ status: 201, description: 'Úkol vytvořen' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   create(
     @Body() dto: CreateTaskDto,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
   ) {
-    const user = req.user as { id: number };
-    return this.tasksService.create(dto, user.id);
+    return this.tasksService.create(dto, parseInt(userId, 10));
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Úprava úkolu (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   @ApiResponse({ status: 403, description: 'Pouze autor nebo admin' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTaskDto,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.tasksService.update(id, dto, user.id, user.role === 'admin');
+    return this.tasksService.update(id, dto, parseInt(userId, 10), role === 'admin');
   }
 
   @Patch(':id/status')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Přepnutí stavu úkolu (toggle open ↔ done)',
-    description: 'Přepne status: open/in_progress → done, done → in_progress.',
-  })
+  @ApiOperation({ summary: 'Přepnutí stavu úkolu (toggle)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Stav přepnut' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   toggleStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.tasksService.toggleStatus(id, user.id, user.role === 'admin');
+    return this.tasksService.toggleStatus(id, parseInt(userId, 10), role === 'admin');
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Smazání úkolu (Author / Admin)' })
+  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'X-User-Role', required: false })
   @ApiResponse({ status: 200, description: 'Smazáno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   @ApiResponse({ status: 403, description: 'Pouze autor nebo admin' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
-    const user = req.user as { id: number; role: string };
-    return this.tasksService.remove(id, user.id, user.role === 'admin');
+    return this.tasksService.remove(id, parseInt(userId, 10), role === 'admin');
   }
 }

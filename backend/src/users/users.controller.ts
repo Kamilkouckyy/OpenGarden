@@ -7,10 +7,8 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -43,21 +41,15 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Aktualizace uživatele' })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Smazání uživatele' })
   @ApiResponse({ status: 200, description: 'Smazáno' })
-  @ApiResponse({ status: 401, description: 'Nepřihlášen' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }

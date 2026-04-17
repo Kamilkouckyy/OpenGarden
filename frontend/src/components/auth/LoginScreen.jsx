@@ -7,6 +7,7 @@ export default function LoginScreen({ onLogin }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('member');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,6 +36,7 @@ export default function LoginScreen({ onLogin }) {
         name: name.trim(),
         email: email.trim(),
         password,
+        role,
       });
       onLogin({ id: created.id, name: created.name, role: created.role });
     } catch (err) {
@@ -74,6 +76,11 @@ export default function LoginScreen({ onLogin }) {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jana@email.cz" />
             <label>Heslo</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+            <label>Role</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="login-select">
+              <option value="member">Člen (member)</option>
+              <option value="admin">Admin</option>
+            </select>
             {error && <div className="login-error">{error}</div>}
             <button type="submit" disabled={loading} className="login-submit">
               {loading ? 'Registruji…' : 'Vytvořit účet'}
