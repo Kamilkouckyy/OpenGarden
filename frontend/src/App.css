@@ -2,6 +2,47 @@
   min-height: 100vh;
 }
 
+.app-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 28px 16px 60px;
+}
+
+/* shared toast notification */
+.gbl-notif {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: .9rem;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  background: #147a58;
+  color: #fff;
+  animation: notif-in .25s ease;
+}
+.gbl-notif.error { background: #c0392b; }
+
+@keyframes notif-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* shared modal styles used by GardenBedOverview */
+.gbl-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+.gbl-modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
+.gbl-modal h2 { margin: 0 0 20px; color: #18362b; font-size: 1.3rem; }
+.gbl-modal label { display: block; font-size: .85rem; font-weight: 600; color: #355e4f; margin: 12px 0 4px; }
+.gbl-modal input, .gbl-modal textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #cde3d8; border-radius: 9px; font-size: .9rem; outline: none; box-sizing: border-box; }
+.gbl-modal input:focus, .gbl-modal textarea:focus { border-color: #27a678; }
+.gbl-modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+.gbl-modal-btn-primary { flex: 1; padding: 11px; background: linear-gradient(130deg,#147a58,#27a678); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.gbl-modal-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.gbl-modal-btn-secondary { padding: 11px 16px; background: transparent; border: 1.5px solid #cde3d8; border-radius: 10px; font-weight: 600; cursor: pointer; color: #355e4f; }
+.req { color: #c0392b; }
+
 .og-page-wrap {
   max-width: 1280px;
   margin: 0 auto;

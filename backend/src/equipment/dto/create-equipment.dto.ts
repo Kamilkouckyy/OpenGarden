@@ -12,8 +12,8 @@ export class CreateEquipmentDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: ['ok', 'damaged', 'under_repair', 'retired'], default: 'ok' })
+  @ApiPropertyOptional({ enum: ['functional', 'non_functional'], default: 'functional' })
   @IsOptional()
-  @IsEnum(['ok', 'damaged', 'under_repair', 'retired'])
-  status?: 'ok' | 'damaged' | 'under_repair' | 'retired';
+  @IsEnum(['functional', 'non_functional'])
+  status?: 'functional' | 'non_functional';
 }

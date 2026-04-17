@@ -16,5 +16,5 @@ export class UpdateEventDto {
   @ApiPropertyOptional({ example: '2025-05-10T17:00:00.000Z' })
   @IsOptional()
   @IsDateString()
-  eventDate?: string;
+  date?: string;
 }

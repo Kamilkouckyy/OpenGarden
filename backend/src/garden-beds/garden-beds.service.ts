@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../database/database.module';
 import * as schema from '../database/schema';
@@ -44,7 +44,7 @@ export class GardenBedsService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const bed = await this.findOne(id);
     // Cascade: smaž linked tasks a reports (dle AGENTS.md – System actor)
     await this.db
       .delete(schema.tasks)
@@ -54,13 +54,16 @@ export class GardenBedsService {
           eq(schema.tasks.linkedId, id),
         ),
       );
+    await this.db
+      .delete(schema.reports)
+      .where(eq(schema.reports.context, `Plot ${bed.name}`));
     await this.db.delete(schema.gardenBeds).where(eq(schema.gardenBeds.id, id));
   }
 
   async claim(bedId: number, userId: number) {
     const bed = await this.findOne(bedId);
 
-    if (bed.status !== 'available') {
+    if (bed.status !== 'free') {
       throw new BadRequestException('Záhon není volný');
     }
 
@@ -68,7 +71,7 @@ export class GardenBedsService {
     const [existing] = await this.db
       .select()
       .from(schema.gardenBeds)
-      .where(eq(schema.gardenBeds.userId, userId));
+      .where(eq(schema.gardenBeds.ownerId, userId));
     if (existing) {
       throw new BadRequestException('Uživatel již má rezervovaný záhon');
     }
@@ -82,8 +85,8 @@ export class GardenBedsService {
     const [updated] = await this.db
       .update(schema.gardenBeds)
       .set({
-        status: 'reserved',
-        userId,
+        status: 'occupied',
+        ownerId: userId,
         ownerName: user.name,
         reservedAt: new Date(),
       })
@@ -95,16 +98,16 @@ export class GardenBedsService {
   async release(bedId: number, userId: number, isAdmin: boolean) {
     const bed = await this.findOne(bedId);
 
-    if (bed.status !== 'reserved') {
-      throw new BadRequestException('Záhon není rezervován');
+    if (bed.status !== 'occupied') {
+      throw new BadRequestException('Záhon není obsazen');
     }
-    if (!isAdmin && bed.userId !== userId) {
+    if (!isAdmin && bed.ownerId !== userId) {
       throw new BadRequestException('Nemáte oprávnění uvolnit tento záhon');
     }
 
     const [updated] = await this.db
       .update(schema.gardenBeds)
-      .set({ status: 'available', userId: null, ownerName: null, reservedAt: null })
+      .set({ status: 'free', ownerId: null, ownerName: null, reservedAt: null })
       .where(eq(schema.gardenBeds.id, bedId))
       .returning();
     return updated;

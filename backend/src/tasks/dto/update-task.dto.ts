@@ -10,10 +10,10 @@ import {
 } from 'class-validator';
 
 export class UpdateTaskDto {
-  @ApiPropertyOptional({ maxLength: 200 })
+  @ApiPropertyOptional({ maxLength: 255 })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(255)
   title?: string;
 
   @ApiPropertyOptional({ maxLength: 4000 })
@@ -35,7 +35,7 @@ export class UpdateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
-  assignedTo?: number;
+  resolverId?: number;
 
   @ApiPropertyOptional({ enum: ['plot', 'report', 'event'] })
   @IsOptional()

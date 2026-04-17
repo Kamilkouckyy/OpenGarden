@@ -34,12 +34,12 @@ export class ReportsService {
     return report;
   }
 
-  async create(dto: CreateReportDto, reportedBy: number) {
+  async create(dto: CreateReportDto, authorId: number) {
     const [user] = await this.db
       .select({ name: schema.users.name })
       .from(schema.users)
-      .where(eq(schema.users.id, reportedBy));
-    if (!user) throw new NotFoundException(`Uživatel #${reportedBy} nenalezen`);
+      .where(eq(schema.users.id, authorId));
+    if (!user) throw new NotFoundException(`Uživatel #${authorId} nenalezen`);
 
     // Automatický kontext pokud je linked na equipment
     let context = dto.context ?? 'General';
@@ -53,14 +53,14 @@ export class ReportsService {
 
     const [report] = await this.db
       .insert(schema.reports)
-      .values({ ...dto, reportedBy, authorName: user.name, context })
+      .values({ ...dto, authorId, authorName: user.name, context })
       .returning();
     return report;
   }
 
   async update(id: number, dto: UpdateReportDto, userId: number, isAdmin: boolean) {
     const report = await this.findOne(id);
-    if (!isAdmin && report.reportedBy !== userId) {
+    if (!isAdmin && report.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může upravovat hlášení');
     }
 
@@ -88,7 +88,7 @@ export class ReportsService {
 
   async remove(id: number, userId: number, isAdmin: boolean) {
     const report = await this.findOne(id);
-    if (!isAdmin && report.reportedBy !== userId) {
+    if (!isAdmin && report.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může smazat hlášení');
     }
     await this.db.delete(schema.reports).where(eq(schema.reports.id, id));

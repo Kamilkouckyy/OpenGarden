@@ -1,60 +1,57 @@
-import { useMemo, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { UserProvider, useUser } from "./context/UserContext";
+import Navbar from "./components/layout/Navbar";
+import GardenBedOverview from "./components/common/GardenBedOverview";
+import GardenBedDetailview from "./components/common/GardenBedDetailview";
+import TaskPanelOverview from "./components/common/TaskPanelOverview";
+import TaskDetailCard from "./components/common/TaskDetailCard";
+import ReportsOverview from "./components/common/ReportsOverview";
+import EquipmentOverview from "./components/common/EquipmentOverview";
+import EventsOverview from "./components/common/EventsOverview";
+import LoginScreen from "./components/auth/LoginScreen";
 import "./App.css";
-import GardenBedOverview from "./components/common/GardenBedOverview.jsx";
-import GardenBedDetailview from "./components/common/GardenBedDetailview.js";
-import TaskPanelOverview from "./components/common/TaskPanelOverview.js";
-import TaskDetailCard from "./components/common/TaskDetailCard.js";
-import Navbar from "./components/layout/Navbar.jsx";
 
-export default function App() {
-  const [user, setUser] = useState({
-    name: "Anna",
-    role: "Správce",
-  });
+function AppShell() {
+  const { user, setUser } = useUser();
 
-  const navItems = useMemo(
-    () => [
-      { label: "Záhony", path: "/garden-beds" },
-      { label: "Úkoly", path: "/tasks" },
-      { label: "Hlášení", path: "/reports" },
-      { label: "Vybavení", path: "/equipment" },
-      { label: "Události", path: "/events" },
-    ],
-    []
-  );
-
-  const handleLogin = () => {
-    setUser({
-      name: "Anna",
-      role: "Správce",
-    });
-  };
-
-  const handleLogout = () => setUser(undefined);
+  if (!user) {
+    return <LoginScreen onLogin={setUser} />;
+  }
 
   return (
-    <div className="App">
+    <div>
       <Navbar
         user={user}
-        navItems={navItems}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
+        onLogout={() => setUser(null)}
+        navItems={[
+          { path: "/garden-beds", label: "Záhony" },
+          { path: "/tasks", label: "Úkoly" },
+          { path: "/reports", label: "Hlášení" },
+          { path: "/equipment", label: "Vybavení" },
+          { path: "/events", label: "Události" },
+        ]}
       />
-
-      <main className="og-page-wrap">
+      <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/garden-beds" replace />} />
-          <Route path="/garden-beds" element={<GardenBedOverview currentUser={user} />} />
-          <Route path="/garden-beds/:id" element={<GardenBedDetailview currentUser={user} />} />
-          <Route path="/tasks" element={<TaskPanelOverview currentUser={user} />} />
-          <Route path="/tasks/:id" element={<TaskDetailCard currentUser={user} />} />
-          <Route path="/reports" element={<Navigate to="/reports" replace />} />
-          <Route path="/equipment" element={<Navigate to="/equipment" replace />} />
-          <Route path="/events" element={<Navigate to="/events" replace />} />
+          <Route path="/garden-beds" element={<GardenBedOverview />} />
+          <Route path="/garden-beds/:id" element={<GardenBedDetailview />} />
+          <Route path="/tasks" element={<TaskPanelOverview />} />
+          <Route path="/tasks/:id" element={<TaskDetailCard />} />
+          <Route path="/reports" element={<ReportsOverview />} />
+          <Route path="/equipment" element={<EquipmentOverview />} />
+          <Route path="/events" element={<EventsOverview />} />
           <Route path="*" element={<Navigate to="/garden-beds" replace />} />
         </Routes>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <UserProvider>
+      <AppShell />
+    </UserProvider>
   );
 }

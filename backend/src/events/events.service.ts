@@ -30,27 +30,27 @@ export class EventsService {
     return event;
   }
 
-  async create(dto: CreateEventDto, createdBy: number) {
-    if (new Date(dto.eventDate) < new Date()) {
+  async create(dto: CreateEventDto, authorId: number) {
+    if (new Date(dto.date) < new Date()) {
       throw new BadRequestException('Datum akce nemůže být v minulosti');
     }
     const [event] = await this.db
       .insert(schema.communityEvents)
-      .values({ ...dto, eventDate: new Date(dto.eventDate), createdBy })
+      .values({ ...dto, date: new Date(dto.date), authorId })
       .returning();
     return event;
   }
 
   async update(id: number, dto: UpdateEventDto, userId: number, isAdmin: boolean) {
     const event = await this.findOne(id);
-    if (!isAdmin && event.createdBy !== userId) {
+    if (!isAdmin && event.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může upravovat akci');
     }
     const data: Partial<typeof schema.communityEvents.$inferInsert> = {
       title: dto.title,
       description: dto.description,
     };
-    if (dto.eventDate) data.eventDate = new Date(dto.eventDate);
+    if (dto.date) data.date = new Date(dto.date);
     const [updated] = await this.db
       .update(schema.communityEvents)
       .set(data)
@@ -61,7 +61,7 @@ export class EventsService {
 
   async cancel(id: number, userId: number, isAdmin: boolean) {
     const event = await this.findOne(id);
-    if (!isAdmin && event.createdBy !== userId) {
+    if (!isAdmin && event.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může zrušit akci');
     }
     if (event.status === 'cancelled') {
@@ -72,14 +72,13 @@ export class EventsService {
       .set({ status: 'cancelled' })
       .where(eq(schema.communityEvents.id, id))
       .returning();
-    // System actor: linked úkoly skryje (označí jako done) – dle AGENTS.md
     // TODO: implementovat viditelnost tasků až bude visibility field přidán do tasks
     return updated;
   }
 
   async restore(id: number, userId: number, isAdmin: boolean) {
     const event = await this.findOne(id);
-    if (!isAdmin && event.createdBy !== userId) {
+    if (!isAdmin && event.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může obnovit akci');
     }
     if (event.status === 'active') {
@@ -95,7 +94,7 @@ export class EventsService {
 
   async remove(id: number, userId: number, isAdmin: boolean) {
     const event = await this.findOne(id);
-    if (!isAdmin && event.createdBy !== userId) {
+    if (!isAdmin && event.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může smazat akci');
     }
     await this.db

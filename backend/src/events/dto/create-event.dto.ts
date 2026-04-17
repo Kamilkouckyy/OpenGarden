@@ -14,5 +14,5 @@ export class CreateEventDto {
 
   @ApiProperty({ example: '2025-05-10T17:00:00.000Z', description: 'ISO 8601 datetime' })
   @IsDateString()
-  eventDate: string;
+  date: string;
 }
