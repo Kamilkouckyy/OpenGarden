@@ -24,10 +24,12 @@ async function bootstrap() {
     .setTitle('OpenGarden API')
     .setDescription(
       'REST API pro správu komunitní zahrady.\n\n' +
-        '**Autentizace (dočasně):** předej `X-User-Id` header s ID uživatele. ' +
-        'Bude nahrazeno JWT po implementaci auth modulu.',
+        '**Autentizace:** Přihlas se přes `POST /auth/login` a získej JWT token. ' +
+        'Token předávej jako `Authorization: Bearer <token>` header.',
     )
     .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Přihlášení a JWT')
     .addTag('users', 'Správa uživatelů')
     .addTag('garden-beds', 'Záhony – rezervace a správa')
     .addTag('tasks', 'Úkoly')

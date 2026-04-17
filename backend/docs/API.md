@@ -18,12 +18,32 @@ Swagger UI (interaktivní): `http://localhost:3000/api/docs`
 
 ## Autentizace
 
-> JWT autentizace je plánována. Dočasně se identity předává přes HTTP hlavičky.
+Přihlašování probíhá přes `POST /auth/login`. Endpoint vrátí **JWT token**, který se posílá jako Bearer token s každým chráněným requestem.
 
-| Hlavička | Popis | Povinná |
-|----------|-------|---------|
-| `X-User-Id` | ID přihlášeného uživatele | Ano (pro chráněné endpointy) |
-| `X-User-Role` | `admin` nebo `member` | Ne (výchozí = `member`) |
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Získání tokenu
+
+```
+POST /auth/login
+Content-Type: application/json
+
+{ "email": "jan@zahrada.cz", "password": "heslo123" }
+```
+
+**Response 201:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": { "id": 5, "name": "Jan Novák", "email": "jan@zahrada.cz", "role": "member" }
+}
+```
+
+**Response 401** — špatné přihlašovací údaje.
+
+> Podrobný průvodce pro FE (API klient, field mapping, příklady): [`FRONTEND_INTEGRATION.md`](./FRONTEND_INTEGRATION.md)
 
 ---
 
@@ -92,7 +112,7 @@ Registrace nového uživatele.
 ### `PATCH /users/:id`
 Částečná aktualizace uživatele.
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body** — libovolná kombinace polí z `POST /users`
 
@@ -103,7 +123,7 @@ Registrace nového uživatele.
 ### `DELETE /users/:id`
 Smazání uživatele. Kaskádně smaže jeho tasky a reporty (DB constraint).
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Response 200**
 
@@ -150,7 +170,7 @@ Detail záhonu.
 ### `POST /garden-beds`
 Vytvoření nového záhonu. *(Admin only)*
 
-**Headers:** `X-User-Id`, `X-User-Role: admin`
+**Auth:** 🔒 Bearer token (role `admin`)
 
 **Request body**
 ```json
@@ -174,7 +194,7 @@ Vytvoření nového záhonu. *(Admin only)*
 ### `PATCH /garden-beds/:id`
 Úprava záhonu (přejmenování, změna popisu, deaktivace). *(Admin only)*
 
-**Headers:** `X-User-Id`, `X-User-Role: admin`
+**Auth:** 🔒 Bearer token (role `admin`)
 
 **Request body** — libovolná kombinace polí z `POST /garden-beds`
 
@@ -185,7 +205,7 @@ Vytvoření nového záhonu. *(Admin only)*
 ### `DELETE /garden-beds/:id`
 Trvalé smazání záhonu. *(Admin only)*
 
-**Headers:** `X-User-Id`, `X-User-Role: admin`
+**Auth:** 🔒 Bearer token (role `admin`)
 
 > **System automation:** Kaskádně smaže všechny tasky s `linkedType=plot` a `linkedId=<id>`.
 
@@ -196,7 +216,7 @@ Trvalé smazání záhonu. *(Admin only)*
 ### `POST /garden-beds/:id/claim`
 Gardener si nárokuje volný záhon. *(UC1)*
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Podmínky:**
 - záhon musí mít `status = available`
@@ -215,7 +235,7 @@ Gardener si nárokuje volný záhon. *(UC1)*
 ### `POST /garden-beds/:id/release`
 Uvolnění záhonu — vlastník nebo Admin.
 
-**Headers:** `X-User-Id`, `X-User-Role` (admin = může uvolnit komukoliv)
+**Auth:** 🔒 Bearer token (vlastník nebo admin)
 
 **Response 200** — záhon s `status: available`, `userId: null`, `ownerName: null`
 
@@ -263,7 +283,7 @@ Detail úkolu.
 ### `POST /tasks`
 Vytvoření úkolu. *(UC2)*
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body**
 ```json
@@ -304,7 +324,7 @@ Vytvoření úkolu. *(UC2)*
 ### `PATCH /tasks/:id`
 Úprava úkolu. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 **Request body** — libovolná kombinace polí z `POST /tasks` + `status`
 
@@ -315,7 +335,7 @@ Vytvoření úkolu. *(UC2)*
 ### `PATCH /tasks/:id/status`
 Přepnutí stavu úkolu (toggle). *(UC6 — Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 | Aktuální stav | Po přepnutí |
 |---------------|-------------|
@@ -330,7 +350,7 @@ Přepnutí stavu úkolu (toggle). *(UC6 — Author nebo Admin)*
 ### `DELETE /tasks/:id`
 Trvalé smazání úkolu. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 **Response 403** — pokud není autor ani admin
 
@@ -365,7 +385,7 @@ Detail vybavení.
 ### `POST /equipment`
 Registrace nového vybavení do systému.
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body**
 ```json
@@ -389,7 +409,7 @@ Registrace nového vybavení do systému.
 ### `PATCH /equipment/:id`
 Úprava vybavení. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 > **Poznámka:** Status `ok` se nastavuje automaticky při vyřešení repair reportu — viz [System automations](#system-automations).
 
@@ -398,7 +418,7 @@ Registrace nového vybavení do systému.
 ### `DELETE /equipment/:id`
 Smazání vybavení. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 ---
 
@@ -434,7 +454,7 @@ Detail hlášení.
 ### `POST /reports`
 Vytvoření hlášení problému. *(UC4)*
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body**
 ```json
@@ -462,7 +482,7 @@ Vytvoření hlášení problému. *(UC4)*
 ### `PATCH /reports/:id`
 Úprava nebo změna stavu hlášení. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 **Request body**
 ```json
@@ -491,7 +511,7 @@ Vytvoření hlášení problému. *(UC4)*
 ### `DELETE /reports/:id`
 Trvalé smazání hlášení. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 ---
 
@@ -525,7 +545,7 @@ Detail akce.
 ### `POST /events`
 Vytvoření komunitní akce.
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body**
 ```json
@@ -554,7 +574,7 @@ Vytvoření komunitní akce.
 ### `PATCH /events/:id`
 Úprava akce. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 **Request body** — libovolná kombinace polí z `POST /events`
 
@@ -563,7 +583,7 @@ Vytvoření komunitní akce.
 ### `PATCH /events/:id/cancel`
 Zrušení akce. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 > Nastaví `status: cancelled`. Linked tasky s `linkedType=event` jsou připraveny ke skrytí (TODO: visibility field).
 
@@ -577,7 +597,7 @@ Zrušení akce. *(Author nebo Admin)*
 ### `PATCH /events/:id/restore`
 Obnovení zrušené akce. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 **Response 400**
 ```json
@@ -589,7 +609,7 @@ Obnovení zrušené akce. *(Author nebo Admin)*
 ### `DELETE /events/:id`
 Trvalé smazání akce. *(Author nebo Admin)*
 
-**Headers:** `X-User-Id`, `X-User-Role`
+**Auth:** 🔒 Bearer token (autor nebo admin)
 
 > Kaskádně smaže všechny záznamy `event_participations`.
 
@@ -611,7 +631,7 @@ Přehled všech RSVP záznamů pro danou akci.
 ### `PUT /events/:id/participation`
 Nastavení nebo aktualizace RSVP statusu. *(UC5)*
 
-**Headers:** `X-User-Id`
+**Auth:** 🔒 Bearer token
 
 **Request body**
 ```json

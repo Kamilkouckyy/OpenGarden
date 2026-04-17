@@ -1,10 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
+import * as bcrypt from 'bcrypt';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../database/database.module';
 import * as schema from '../database/schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+const BCRYPT_ROUNDS = 10;
 
 @Injectable()
 export class UsersService {
@@ -39,9 +42,10 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const [user] = await this.db
       .insert(schema.users)
-      .values(dto)
+      .values({ ...dto, password: hashedPassword })
       .returning({
         id: schema.users.id,
         name: schema.users.name,
@@ -54,9 +58,13 @@ export class UsersService {
 
   async update(id: number, dto: UpdateUserDto) {
     await this.findOne(id);
+    const patch: Partial<typeof schema.users.$inferInsert> = { ...dto };
+    if (dto.password) {
+      patch.password = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    }
     const [user] = await this.db
       .update(schema.users)
-      .set(dto)
+      .set(patch)
       .where(eq(schema.users.id, id))
       .returning({
         id: schema.users.id,
