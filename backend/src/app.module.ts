@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { GardenBedsModule } from './garden-beds/garden-beds.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -12,6 +13,7 @@ import { EventsModule } from './events/events.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
+    AuthModule,
     UsersModule,
     GardenBedsModule,
     TasksModule,
