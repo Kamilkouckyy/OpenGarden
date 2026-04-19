@@ -37,18 +37,37 @@ export class EquipmentService {
   }
 
   async update(id: number, dto: UpdateEquipmentDto, userId: number, isAdmin: boolean) {
-    const item = await this.findOne(id);
-    if (!isAdmin && item.authorId !== userId) {
-      throw new ForbiddenException('Pouze autor nebo admin může upravovat vybavení');
-    }
-    const [updated] = await this.db
-      .update(schema.equipment)
-      .set(dto)
-      .where(eq(schema.equipment.id, id))
-      .returning();
-    return updated;
+  const item = await this.findOne(id);
+  if (!isAdmin && item.authorId !== userId) {
+    throw new ForbiddenException('Pouze autor nebo admin může upravovat vybavení');
   }
 
+  const [updated] = await this.db
+    .update(schema.equipment)
+    .set(dto)
+    .where(eq(schema.equipment.id, id))
+    .returning();
+
+  // Auto-create report při změně na non_functional
+  if (dto.status === 'non_functional' && item.status !== 'non_functional') {
+    const [user] = await this.db
+      .select({ name: schema.users.name })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+
+    await this.db.insert(schema.reports).values({
+      title: `Porucha: ${item.name}`,
+      description: `Vybavení "${item.name}" bylo označeno jako nefunkční.`,
+      authorId: userId,
+      authorName: user?.name ?? 'System',
+      equipmentId: id,
+      context: `Equipment: ${item.name}`,
+    });
+  }
+
+  return updated;
+}
+  
   async remove(id: number, userId: number, isAdmin: boolean) {
     const item = await this.findOne(id);
     if (!isAdmin && item.authorId !== userId) {
