@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Headers,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -63,10 +64,11 @@ export class EquipmentController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Smazání vybavení (Author / Admin)' })
   @ApiHeader({ name: 'X-User-Id', required: true })
   @ApiHeader({ name: 'X-User-Role', required: false })
-  @ApiResponse({ status: 200, description: 'Smazáno' })
+  @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(
     @Param('id', ParseIntPipe) id: number,
     @Headers('x-user-id') userId: string,

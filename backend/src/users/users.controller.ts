@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -48,8 +49,9 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Smazání uživatele' })
-  @ApiResponse({ status: 200, description: 'Smazáno' })
+  @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }

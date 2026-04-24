@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Headers,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -56,9 +57,10 @@ export class GardenBedsController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Smazání záhonu (Admin)' })
   @ApiHeader(AUTH_HEADERS[0])
-  @ApiResponse({ status: 200, description: 'Smazáno' })
+  @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.gardenBedsService.remove(id);
   }
