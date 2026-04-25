@@ -9,6 +9,7 @@ import ReportsOverview from "./components/common/ReportsOverview";
 import EquipmentOverview from "./components/common/EquipmentOverview";
 import EventsOverview from "./components/common/EventsOverview";
 import LoginScreen from "./components/auth/LoginScreen";
+import EventDetailView from "./components/common/EventDetailView";
 import "./App.css";
 
 function AppShell() {
@@ -41,6 +42,7 @@ function AppShell() {
           <Route path="/reports" element={<ReportsOverview />} />
           <Route path="/equipment" element={<EquipmentOverview />} />
           <Route path="/events" element={<EventsOverview />} />
+          <Route path="/events/:id" element={<EventDetailView />} />
           <Route path="*" element={<Navigate to="/garden-beds" replace />} />
         </Routes>
       </main>

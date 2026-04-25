@@ -1,0 +1,186 @@
+/* =========================
+   Event Creation Form
+========================= */
+
+.ecf-form {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================
+   Header
+========================= */
+
+.ecf-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.ecf-heading h2 {
+  margin: 0;
+  color: #18362b;
+  font-size: 1.3rem;
+}
+
+.ecf-icon {
+  font-size: 1.35rem;
+}
+
+
+/* =========================
+   Fields
+========================= */
+
+.ecf-label {
+  display: block;
+  margin: 12px 0 5px;
+  color: #355e4f;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ecf-input,
+.ecf-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px solid #cde3d8;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #18362b;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.ecf-textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.ecf-input:focus,
+.ecf-textarea:focus {
+  border-color: #27a678;
+  box-shadow: 0 0 0 3px rgba(39, 166, 120, 0.12);
+}
+
+.ecf-input:disabled {
+  background: #f6faf8;
+  color: #7aaa90;
+  cursor: not-allowed;
+}
+
+
+/* =========================
+   Validation
+========================= */
+
+.ecf-input.has-error,
+.ecf-textarea.has-error {
+  border-color: #c0392b;
+  background: #fffafa;
+}
+
+.ecf-field-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 20px;
+  margin-top: 4px;
+}
+
+.ecf-error {
+  color: #c0392b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ecf-error.block {
+  display: block;
+  margin-top: 5px;
+}
+
+.ecf-counter {
+  margin-left: auto;
+  color: #7aaa90;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ecf-counter.danger {
+  color: #c0392b;
+}
+
+.req {
+  color: #c0392b;
+}
+
+
+/* =========================
+   Actions
+========================= */
+
+.ecf-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.ecf-primary {
+  flex: 1;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(130deg, #147a58, #27a678);
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ecf-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ecf-secondary {
+  padding: 11px 16px;
+  border: 1.5px solid #cde3d8;
+  border-radius: 10px;
+  background: transparent;
+  color: #355e4f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ecf-secondary:hover {
+  background: #f0f9f4;
+}
+
+
+/* =========================
+   Loading
+========================= */
+
+.ecf-loading {
+  padding: 28px;
+  text-align: center;
+  color: #7aaa90;
+  font-weight: 700;
+}
+
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 560px) {
+  .ecf-actions {
+    flex-direction: column;
+  }
+
+  .ecf-secondary {
+    width: 100%;
+  }
+}
