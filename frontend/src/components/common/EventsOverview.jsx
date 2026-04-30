@@ -174,7 +174,7 @@ export default function EventsOverview() {
         <div className="ev-list">
           {loading && <div className="ev-empty">Načítám události…</div>}
           {!loading && filteredEvents.length === 0 && (
-            <div className="ev-empty">No tasks available</div>
+            <div className="ev-empty">Žádné události k zobrazení.</div>
           )}
 
           {!loading &&
