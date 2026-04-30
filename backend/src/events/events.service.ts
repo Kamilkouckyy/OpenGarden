@@ -18,13 +18,35 @@ export class EventsService {
   constructor(@Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>) {}
 
   findAll() {
-    return this.db.select().from(schema.communityEvents);
+    return this.db
+      .select({
+        id: schema.communityEvents.id,
+        title: schema.communityEvents.title,
+        description: schema.communityEvents.description,
+        date: schema.communityEvents.date,
+        status: schema.communityEvents.status,
+        authorId: schema.communityEvents.authorId,
+        authorName: schema.users.name,
+        createdAt: schema.communityEvents.createdAt,
+      })
+      .from(schema.communityEvents)
+      .innerJoin(schema.users, eq(schema.communityEvents.authorId, schema.users.id));
   }
 
   async findOne(id: number) {
     const [event] = await this.db
-      .select()
+      .select({
+        id: schema.communityEvents.id,
+        title: schema.communityEvents.title,
+        description: schema.communityEvents.description,
+        date: schema.communityEvents.date,
+        status: schema.communityEvents.status,
+        authorId: schema.communityEvents.authorId,
+        authorName: schema.users.name,
+        createdAt: schema.communityEvents.createdAt,
+      })
       .from(schema.communityEvents)
+      .innerJoin(schema.users, eq(schema.communityEvents.authorId, schema.users.id))
       .where(eq(schema.communityEvents.id, id));
     if (!event) throw new NotFoundException(`Akce #${id} nenalezena`);
     return event;
@@ -45,6 +67,9 @@ export class EventsService {
     const event = await this.findOne(id);
     if (!isAdmin && event.authorId !== userId) {
       throw new ForbiddenException('Pouze autor nebo admin může upravovat akci');
+    }
+    if (dto.date && new Date(dto.date) < new Date()) {
+      throw new BadRequestException('Datum akce nemůže být v minulosti');
     }
     const data: Partial<typeof schema.communityEvents.$inferInsert> = {
       title: dto.title,
