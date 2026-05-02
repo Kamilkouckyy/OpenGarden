@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { tasksApi, gardenBedsApi, reportsApi, eventsApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./TaskPanelOverview.css";
 
-const STATUS_LABEL = { open: "Otevřený", in_progress: "Probíhá", done: "Dokončený" };
 const STATUS_CLASS = { open: "open", in_progress: "in-progress", done: "done" };
 
 function isOverdue(dueDate) {
@@ -16,6 +16,7 @@ export default function TaskPanelOverview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useUser();
+  const { t } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   const [tasks, setTasks] = useState([]);
@@ -43,11 +44,11 @@ export default function TaskPanelOverview() {
       const data = await tasksApi.list();
       setTasks(data);
     } catch {
-      notify("Nepodařilo se načíst úkoly.", "error");
+      notify(t("tasks.loadFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -75,11 +76,11 @@ export default function TaskPanelOverview() {
         linkedId: form.linkedId ? Number(form.linkedId) : undefined,
       };
       await tasksApi.create(payload, user);
-      notify("Úkol byl vytvořen.");
+      notify(t("tasks.createdSuccess"));
       setShowForm(false);
       load();
     } catch (err) {
-      notify(err.message || "Vytvoření se nezdařilo.", "error");
+      notify(err.message || t("tasks.createFailed"), "error");
     } finally {
       setFormLoading(false);
     }
@@ -90,22 +91,29 @@ export default function TaskPanelOverview() {
       await tasksApi.toggleStatus(task.id, user);
       load();
     } catch (err) {
-      notify(err.message || "Změna stavu se nezdařila.", "error");
+      notify(err.message || t("tasks.statusChangeFailed"), "error");
     }
   };
 
   const handleDelete = async (task) => {
-    if (!window.confirm(`Smazat úkol „${task.title}"?`)) return;
+    if (!window.confirm(t("tasks.deleteConfirm", { title: task.title }))) return;
     try {
       await tasksApi.remove(task.id, user);
-      notify("Úkol byl smazán.", "error");
+      notify(t("tasks.deleteSuccess"), "error");
       load();
     } catch (err) {
-      notify(err.message || "Smazání se nezdařilo.", "error");
+      notify(err.message || t("tasks.deleteFailed"), "error");
     }
   };
 
-  const filtered = tasks.filter((t) => filter === "all" || t.status === filter);
+  const filtered = tasks.filter((task) => filter === "all" || task.status === filter);
+
+  const getStatusLabel = (status) => {
+    if (status === "open") return t("tasks.open");
+    if (status === "in_progress") return t("tasks.inProgress");
+    if (status === "done") return t("tasks.done");
+    return status;
+  };
 
   return (
     <>
@@ -113,23 +121,28 @@ export default function TaskPanelOverview() {
         <div className="tp-header">
           <div className="tp-title-wrap">
             <span className="tp-icon">✅</span>
-            <h1 className="tp-title">Správa úkolů</h1>
+            <h1 className="tp-title">{t("tasks.title")}</h1>
           </div>
-          <button className="tp-btn-add" onClick={openForm}>+ Nový úkol</button>
+          <button className="tp-btn-add" onClick={openForm}>{t("tasks.addNew")}</button>
         </div>
 
         <div className="tp-filters">
-          {[["all","Všechny"],["open","Otevřené"],["in_progress","Probíhají"],["done","Dokončené"]].map(([v,l]) => (
-            <button key={v} className={`tp-filter-btn${filter === v ? " active" : ""}`} onClick={() => setFilter(v)}>
-              {l}
-              {` (${v === "all" ? tasks.length : tasks.filter(t => t.status === v).length})`}
+          {[
+            ["all", t("tasks.all")],
+            ["open", t("tasks.open")],
+            ["in_progress", t("tasks.inProgress")],
+            ["done", t("tasks.done")],
+          ].map(([value, label]) => (
+            <button key={value} className={`tp-filter-btn${filter === value ? " active" : ""}`} onClick={() => setFilter(value)}>
+              {label}
+              {` (${value === "all" ? tasks.length : tasks.filter(task => task.status === value).length})`}
             </button>
           ))}
         </div>
 
         <div className="tp-list">
-          {loading && <div className="tp-empty">Načítám úkoly…</div>}
-          {!loading && filtered.length === 0 && <div className="tp-empty">Žádné úkoly k zobrazení.</div>}
+          {loading && <div className="tp-empty">{t("tasks.loading")}</div>}
+          {!loading && filtered.length === 0 && <div className="tp-empty">{t("tasks.empty")}</div>}
 
           {!loading && filtered.map((task) => {
             const canEdit = isAdmin || task.authorId === user?.id;
@@ -138,7 +151,7 @@ export default function TaskPanelOverview() {
             return (
               <div key={task.id} className={`tp-task-row${task.status === "done" ? " done" : ""}${overdue ? " overdue" : ""}`}>
                 <div className="tp-task-main">
-                  <span className={`tp-status-dot ${STATUS_CLASS[task.status]}`} title={STATUS_LABEL[task.status]} />
+                  <span className={`tp-status-dot ${STATUS_CLASS[task.status]}`} title={getStatusLabel(task.status)} />
                   <div className="tp-task-info">
                     <span className="tp-task-title">{task.title}</span>
                     <span className="tp-task-meta">
@@ -153,17 +166,17 @@ export default function TaskPanelOverview() {
                   </div>
                 </div>
                 <div className="tp-task-actions">
-                  <button className="tp-action-btn tp-toggle" onClick={() => handleToggle(task)} title="Přepnout stav">
-                    {task.status === "done" ? "↩ Znovu otevřít" : "✓ Dokončit"}
+                  <button className="tp-action-btn tp-toggle" onClick={() => handleToggle(task)} title={t("tasks.toggleStatusTitle")}>
+                    {task.status === "done" ? t("tasks.reopen") : t("tasks.complete")}
                   </button>
                   {canEdit && (
                     <button className="tp-action-btn tp-detail" onClick={() => navigate(`/tasks/${task.id}`)}>
-                      Detail
+                      {t("tasks.detail")}
                     </button>
                   )}
                   {canEdit && (
                     <button className="tp-action-btn tp-delete" onClick={() => handleDelete(task)}>
-                      Smazat
+                      {t("tasks.delete")}
                     </button>
                   )}
                 </div>
@@ -176,49 +189,49 @@ export default function TaskPanelOverview() {
       {showForm && (
         <div className="tp-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="tp-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Nový úkol</h2>
+            <h2>{t("tasks.newTask")}</h2>
             <form onSubmit={handleCreate}>
-              <label>Název <span className="req">*</span></label>
-              <input maxLength={255} required value={form.title} onChange={(e) => setForm(p => ({...p, title: e.target.value}))} placeholder="Popis úkolu…" />
+              <label>{t("tasks.name")} <span className="req">*</span></label>
+              <input maxLength={255} required value={form.title} onChange={(e) => setForm(p => ({...p, title: e.target.value}))} placeholder={t("tasks.taskPlaceholder")} />
 
-              <label>Termín</label>
+              <label>{t("tasks.deadline")}</label>
               <input type="date" min={new Date().toISOString().split("T")[0]} value={form.dueDate} onChange={(e) => setForm(p => ({...p, dueDate: e.target.value}))} />
 
-              <label>Navázat na</label>
+              <label>{t("tasks.linkTo")}</label>
               <select value={form.linkedType} onChange={(e) => setForm(p => ({...p, linkedType: e.target.value, linkedId: ""}))}>
-                <option value="">— žádné —</option>
-                <option value="plot">Záhon</option>
-                <option value="report">Hlášení</option>
-                <option value="event">Událost</option>
+                <option value="">{t("tasks.none")}</option>
+                <option value="plot">{t("tasks.gardenBed")}</option>
+                <option value="report">{t("tasks.report")}</option>
+                <option value="event">{t("tasks.event")}</option>
               </select>
 
               {form.linkedType === "plot" && (
                 <select value={form.linkedId} onChange={(e) => setForm(p => ({...p, linkedId: e.target.value}))}>
-                  <option value="">Vyber záhon…</option>
+                  <option value="">{t("tasks.selectGardenBed")}</option>
                   {beds.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               )}
               {form.linkedType === "report" && (
                 <select value={form.linkedId} onChange={(e) => setForm(p => ({...p, linkedId: e.target.value}))}>
-                  <option value="">Vyber hlášení…</option>
+                  <option value="">{t("tasks.selectReport")}</option>
                   {reports.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
                 </select>
               )}
               {form.linkedType === "event" && (
                 <select value={form.linkedId} onChange={(e) => setForm(p => ({...p, linkedId: e.target.value}))}>
-                  <option value="">Vyber událost…</option>
+                  <option value="">{t("tasks.selectEvent")}</option>
                   {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
                 </select>
               )}
 
-              <label>Popis</label>
-              <textarea maxLength={4000} rows={3} value={form.description} onChange={(e) => setForm(p => ({...p, description: e.target.value}))} placeholder="Volitelný popis…" />
+              <label>{t("tasks.description")}</label>
+              <textarea maxLength={4000} rows={3} value={form.description} onChange={(e) => setForm(p => ({...p, description: e.target.value}))} placeholder={t("tasks.descriptionPlaceholder")} />
 
               <div className="tp-modal-actions">
                 <button type="submit" disabled={formLoading} className="tp-modal-btn-primary">
-                  {formLoading ? "Vytvářím…" : "Vytvořit úkol"}
+                  {formLoading ? t("tasks.creating") : t("tasks.createTask")}
                 </button>
-                <button type="button" className="tp-modal-btn-secondary" onClick={() => setShowForm(false)}>Zrušit</button>
+                <button type="button" className="tp-modal-btn-secondary" onClick={() => setShowForm(false)}>{t("tasks.cancel")}</button>
               </div>
             </form>
           </div>

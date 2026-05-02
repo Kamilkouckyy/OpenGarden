@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./EventCreationForm.css";
 
 const TITLE_LIMIT = 100;
@@ -24,9 +25,11 @@ export default function EventCreationForm({
   isLoading = false,
   isSubmitting = false,
   defaultValues = {},
-  submitLabel = "Vytvořit událost",
-  title = "Nová událost",
+  submitLabel,
+  title,
 }) {
+  const { t } = useLanguage();
+
   const minDate = useMemo(() => getMinDateTimeLocal(), []);
   const [values, setValues] = useState({
     title: defaultValues.title || "",
@@ -45,23 +48,23 @@ export default function EventCreationForm({
     const nextErrors = {};
 
     if (!values.title.trim()) {
-      nextErrors.title = "Název události je povinný.";
+      nextErrors.title = t("events.eventTitleRequired");
     } else if (values.title.trim().length > TITLE_LIMIT) {
-      nextErrors.title = `Název musí mít maximálně ${TITLE_LIMIT} znaků.`;
+      nextErrors.title = t("events.eventTitleLimit", { limit: TITLE_LIMIT });
     }
 
     if (values.description.length > DESCRIPTION_LIMIT) {
-      nextErrors.description = `Popis musí mít maximálně ${DESCRIPTION_LIMIT} znaků.`;
+      nextErrors.description = t("events.descriptionLimit", { limit: DESCRIPTION_LIMIT });
     }
 
     if (!values.date) {
-      nextErrors.date = "Datum a čas události jsou povinné.";
+      nextErrors.date = t("events.dateRequired");
     } else if (new Date(values.date) < new Date()) {
-      nextErrors.date = "Datum události nemůže být v minulosti.";
+      nextErrors.date = t("events.dateInPast");
     }
 
     if (values.photo && values.photo.length > 255) {
-      nextErrors.photo = "URL obrázku může mít maximálně 255 znaků.";
+      nextErrors.photo = t("events.photoLimit");
     }
 
     setErrors(nextErrors);
@@ -82,18 +85,18 @@ export default function EventCreationForm({
   };
 
   if (isLoading) {
-    return <div className="ecf-loading">Načítám formulář…</div>;
+    return <div className="ecf-loading">{t("events.formLoading")}</div>;
   }
 
   return (
     <form className="ecf-form" onSubmit={handleSubmit} noValidate>
       <div className="ecf-heading">
         <span className="ecf-icon">🌿</span>
-        <h2>{title}</h2>
+        <h2>{title || t("events.newEvent")}</h2>
       </div>
 
       <label className="ecf-label" htmlFor="event-title">
-        Název události <span className="req">*</span>
+        {t("events.eventTitle")} <span className="req">*</span>
       </label>
       <input
         id="event-title"
@@ -102,7 +105,7 @@ export default function EventCreationForm({
         maxLength={TITLE_LIMIT + 1}
         disabled={isSubmitting}
         onChange={(e) => updateValue("title", e.target.value)}
-        placeholder="Např. Jarní sázení nebo společná brigáda"
+        placeholder={t("events.titlePlaceholder")}
       />
       <div className="ecf-field-row">
         {errors.title && <span className="ecf-error">{errors.title}</span>}
@@ -112,7 +115,7 @@ export default function EventCreationForm({
       </div>
 
       <label className="ecf-label" htmlFor="event-date">
-        Datum a čas <span className="req">*</span>
+        {t("events.dateTime")} <span className="req">*</span>
       </label>
       <input
         id="event-date"
@@ -125,7 +128,7 @@ export default function EventCreationForm({
       />
       {errors.date && <span className="ecf-error block">{errors.date}</span>}
 
-      <label className="ecf-label" htmlFor="event-description">Popis</label>
+      <label className="ecf-label" htmlFor="event-description">{t("events.formDescription")}</label>
       <textarea
         id="event-description"
         className={`ecf-textarea${errors.description ? " has-error" : ""}`}
@@ -134,7 +137,7 @@ export default function EventCreationForm({
         maxLength={DESCRIPTION_LIMIT + 1}
         disabled={isSubmitting}
         onChange={(e) => updateValue("description", e.target.value)}
-        placeholder="Krátce popiš, co se bude dít a co si mají účastníci případně vzít s sebou."
+        placeholder={t("events.descriptionPlaceholder")}
       />
       <div className="ecf-field-row">
         {errors.description && <span className="ecf-error">{errors.description}</span>}
@@ -143,7 +146,7 @@ export default function EventCreationForm({
         </span>
       </div>
 
-      <label className="ecf-label" htmlFor="event-photo">Fotka / URL obrázku</label>
+      <label className="ecf-label" htmlFor="event-photo">{t("events.photo")}</label>
       <input
         id="event-photo"
         className={`ecf-input${errors.photo ? " has-error" : ""}`}
@@ -151,25 +154,25 @@ export default function EventCreationForm({
         maxLength={256}
         disabled={isSubmitting}
         onChange={(e) => updateValue("photo", e.target.value)}
-        placeholder="Volitelné – URL obrázku pro budoucí backend podporu"
+        placeholder={t("events.photoPlaceholder")}
       />
       {errors.photo && <span className="ecf-error block">{errors.photo}</span>}
 
-      <label className="ecf-label" htmlFor="event-context">Kontext události</label>
+      <label className="ecf-label" htmlFor="event-context">{t("events.context")}</label>
       <input
         id="event-context"
         className="ecf-input"
-        value="Komunitní zahrada"
+        value={t("events.contextValue")}
         disabled
-        title="Pro tento úkol stačí obecná komunitní událost."
+        title={t("events.contextTitle")}
       />
 
       <div className="ecf-actions">
         <button type="submit" className="ecf-primary" disabled={isSubmitting}>
-          {isSubmitting ? "Ukládám…" : submitLabel}
+          {isSubmitting ? t("events.saving") : submitLabel || t("events.createEvent")}
         </button>
         <button type="button" className="ecf-secondary" onClick={onCancel} disabled={isSubmitting}>
-          Zrušit
+          {t("events.cancel")}
         </button>
       </div>
     </form>

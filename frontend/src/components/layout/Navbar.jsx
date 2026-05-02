@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./Navbar.css";
 
 export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
+  const { t } = useLanguage();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -21,14 +24,14 @@ export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
   const handleNavClick = () => setIsMenuOpen(false);
 
   return (
-    <nav className="og-navbar" aria-label="Hlavní navigace">
+    <nav className="og-navbar" aria-label={t("nav.ariaLabel")}>
       <div className="og-brand">
         <span className="og-brand-text">OpenGarden</span>
       </div>
 
       <button
         className={`og-hamburger${isMenuOpen ? " open" : ""}`}
-        aria-label="Prepnout menu"
+        aria-label={t("nav.toggleMenu")}
         aria-expanded={isMenuOpen}
         onClick={() => setIsMenuOpen((prev) => !prev)}
         type="button"
@@ -65,7 +68,7 @@ export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
                 onClick={() => setIsUserMenuOpen((prev) => !prev)}
               >
                 <span>
-                  Přihlášen jako: {user.name} ({user.role})
+                  {t("nav.loggedInAs")}: {user.name} ({user.role})
                 </span>
                 <span className="og-caret" aria-hidden="true">
                   {isUserMenuOpen ? "▲" : "▼"}
@@ -82,7 +85,7 @@ export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
                       onLogout?.();
                     }}
                   >
-                    Odhlásit
+                    {t("nav.logout")}
                   </button>
                 </div>
               )}
@@ -96,7 +99,7 @@ export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
                 onLogin?.();
               }}
             >
-              Přihlásit
+              {t("nav.login")}
             </button>
           )}
         </div>

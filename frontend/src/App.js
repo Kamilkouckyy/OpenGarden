@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { UserProvider, useUser } from "./context/UserContext";
+import { LanguageProvider, useLanguage } from "./i18n/LanguageContext";
 import Navbar from "./components/layout/Navbar";
 import GardenBedOverview from "./components/common/GardenBedOverview";
 import GardenBedDetailview from "./components/common/GardenBedDetailview";
@@ -14,6 +15,7 @@ import "./App.css";
 
 function AppShell() {
   const { user, setUser } = useUser();
+  const { t } = useLanguage();
 
   if (!user) {
     return <LoginScreen onLogin={setUser} />;
@@ -25,11 +27,11 @@ function AppShell() {
         user={user}
         onLogout={() => setUser(null)}
         navItems={[
-          { path: "/garden-beds", label: "Záhony" },
-          { path: "/tasks", label: "Úkoly" },
-          { path: "/reports", label: "Hlášení" },
-          { path: "/equipment", label: "Vybavení" },
-          { path: "/events", label: "Události" },
+          { path: "/garden-beds", label: t("nav.gardenBeds") },
+          { path: "/tasks", label: t("nav.tasks") },
+          { path: "/reports", label: t("nav.reports") },
+          { path: "/equipment", label: t("nav.equipment") },
+          { path: "/events", label: t("nav.events") },
         ]}
       />
       <main className="app-main">
@@ -53,7 +55,9 @@ function AppShell() {
 export default function App() {
   return (
     <UserProvider>
-      <AppShell />
+      <LanguageProvider>
+        <AppShell />
+      </LanguageProvider>
     </UserProvider>
   );
 }

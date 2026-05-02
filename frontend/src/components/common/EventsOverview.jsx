@@ -2,23 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { eventsApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
+import { useLanguage } from "../../i18n/LanguageContext";
 import EventCreationForm from "./EventCreationForm";
 import "./EventsOverview.css";
-
-const STATUS_LABEL = {
-  upcoming: "Nadcházející",
-  ended: "Proběhlá",
-  canceled: "Zrušená",
-  cancelled: "Zrušená",
-  active: "Aktivní",
-};
-
-const RSVP_LABEL = {
-  going: "Jdu",
-  maybe: "Možná",
-  not_going: "Nejdu",
-  "not-going": "Nejdu",
-};
 
 function isPast(dateStr) {
   if (!dateStr) return false;
@@ -32,11 +18,11 @@ function getVisualStatus(event) {
   return "upcoming";
 }
 
-function formatEventDate(dateStr) {
-  if (!dateStr) return "Datum není nastavené";
+function formatEventDate(dateStr, locale, noDateText) {
+  if (!dateStr) return noDateText;
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
-  return date.toLocaleString("cs-CZ", {
+  return date.toLocaleString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -59,6 +45,8 @@ function getParticipationStats(participants = []) {
 
 export default function EventsOverview() {
   const { user } = useUser();
+  const { t } = useLanguage();
+
   const [events, setEvents] = useState([]);
   const [participations, setParticipations] = useState({});
   const [loading, setLoading] = useState(true);
@@ -66,6 +54,15 @@ export default function EventsOverview() {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  const getStatusLabel = (status) => {
+    if (status === "upcoming") return t("events.upcoming");
+    if (status === "ended") return t("events.ended");
+    if (status === "canceled") return t("events.canceled");
+    if (status === "cancelled") return t("events.cancelled");
+    if (status === "active") return t("events.active");
+    return status;
+  };
 
   const notify = useCallback((msg, type = "success") => {
     setNotification({ msg, type });
@@ -90,11 +87,11 @@ export default function EventsOverview() {
       );
       setParticipations(nextParticipations);
     } catch (err) {
-      notify(err.message || "Nepodařilo se načíst události.", "error");
+      notify(err.message || t("events.loadFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, t]);
 
   useEffect(() => {
     loadEvents();
@@ -128,11 +125,11 @@ export default function EventsOverview() {
         },
         user,
       );
-      notify("Událost byla vytvořena.");
+      notify(t("events.createSuccess"));
       setShowForm(false);
       await loadEvents();
     } catch (err) {
-      notify(err.message || "Vytvoření události se nezdařilo.", "error");
+      notify(err.message || t("events.createFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -145,21 +142,21 @@ export default function EventsOverview() {
           <div className="ev-title-wrap">
             <span className="ev-icon">📅</span>
             <div>
-              <h1 className="ev-title">Komunitní události</h1>
-              <p className="ev-subtitle">Přehled akcí, workshopů a společných aktivit v zahradě.</p>
+              <h1 className="ev-title">{t("events.title")}</h1>
+              <p className="ev-subtitle">{t("events.subtitle")}</p>
             </div>
           </div>
           <button className="ev-btn-add" onClick={() => setShowForm(true)}>
-            + Nová událost
+            {t("events.addNew")}
           </button>
         </div>
 
-        <div className="ev-filters" aria-label="Filtr událostí">
+        <div className="ev-filters" aria-label={t("events.filtersLabel")}>
           {[
-            ["all", "Všechny", counts.all],
-            ["upcoming", "Nadcházející", counts.upcoming],
-            ["ended", "Proběhlé", counts.ended],
-            ["canceled", "Zrušené", counts.canceled],
+            ["all", t("events.all"), counts.all],
+            ["upcoming", t("events.upcoming"), counts.upcoming],
+            ["ended", t("events.ended"), counts.ended],
+            ["canceled", t("events.canceled"), counts.canceled],
           ].map(([value, label, count]) => (
             <button
               key={value}
@@ -172,9 +169,9 @@ export default function EventsOverview() {
         </div>
 
         <div className="ev-list">
-          {loading && <div className="ev-empty">Načítám události…</div>}
+          {loading && <div className="ev-empty">{t("events.loading")}</div>}
           {!loading && filteredEvents.length === 0 && (
-            <div className="ev-empty">Žádné události k zobrazení.</div>
+            <div className="ev-empty">{t("events.empty")}</div>
           )}
 
           {!loading &&
@@ -189,22 +186,22 @@ export default function EventsOverview() {
                     <div className="ev-row-top">
                       <h2 className="ev-row-title">{event.title}</h2>
                       <span className={`ev-badge ${visualStatus}`}>
-                        {STATUS_LABEL[visualStatus]}
+                        {getStatusLabel(visualStatus)}
                       </span>
                     </div>
-                    <div className="ev-row-date">📅 {formatEventDate(event.date)}</div>
+                    <div className="ev-row-date">📅 {formatEventDate(event.date, t("events.locale"), t("events.noDate"))}</div>
                     {event.description && <p className="ev-row-desc">{event.description}</p>}
 
                     <div className="ev-rsvp-summary">
-                      <span className="ev-rsvp-count going">✓ {RSVP_LABEL.going}: {stats.going}</span>
-                      <span className="ev-rsvp-count maybe">? {RSVP_LABEL.maybe}: {stats.maybe}</span>
-                      <span className="ev-rsvp-count not_going">✕ {RSVP_LABEL.not_going}: {stats.not_going}</span>
+                      <span className="ev-rsvp-count going">✓ {t("events.going")}: {stats.going}</span>
+                      <span className="ev-rsvp-count maybe">? {t("events.maybe")}: {stats.maybe}</span>
+                      <span className="ev-rsvp-count not_going">✕ {t("events.notGoing")}: {stats.not_going}</span>
                     </div>
                   </div>
 
                   <div className="ev-row-actions">
                     <Link className="ev-detail-btn" to={`/events/${event.id}`}>
-                      Detail události
+                      {t("events.detail")}
                     </Link>
                   </div>
                 </article>

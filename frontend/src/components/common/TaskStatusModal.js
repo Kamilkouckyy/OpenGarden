@@ -1,11 +1,6 @@
 import React from "react";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./TaskStatusModal.css";
-
-const STATUS_OPTIONS = [
-  { value: "open", label: "Open" },
-  { value: "in_progress", label: "In progress" },
-  { value: "done", label: "Done" },
-];
 
 export default function TaskStatusModal({
   isOpen,
@@ -14,13 +9,21 @@ export default function TaskStatusModal({
   onSave,
   onCancel,
 }) {
+  const { t } = useLanguage();
+
+  const statusOptions = [
+    { value: "open", label: t("tasks.open") },
+    { value: "in_progress", label: t("tasks.inProgress") },
+    { value: "done", label: t("tasks.done") },
+  ];
+
   if (!isOpen) return null;
 
   return (
     <div className="task-modal-overlay" onClick={onCancel}>
       <div className="task-status-modal" onClick={(e) => e.stopPropagation()}>
         <div className="task-status-modal__header">
-          <h2 className="task-status-modal__title">Update Task Status</h2>
+          <h2 className="task-status-modal__title">{t("tasks.statusModalTitle")}</h2>
           <button
             type="button"
             className="task-status-modal__close"
@@ -32,11 +35,11 @@ export default function TaskStatusModal({
 
         <div className="task-status-modal__body">
           <p className="task-status-modal__subtitle">
-            Select a new status for this task.
+            {t("tasks.statusModalSubtitle")}
           </p>
 
           <div className="task-status-modal__options">
-            {STATUS_OPTIONS.map((option) => (
+            {statusOptions.map((option) => (
               <label key={option.value} className="task-status-modal__option">
                 <input
                   type="radio"
@@ -53,14 +56,14 @@ export default function TaskStatusModal({
 
         <div className="task-status-modal__footer">
           <button type="button" className="task-status-modal__save" onClick={onSave}>
-            Save
+            {t("tasks.save")}
           </button>
           <button
             type="button"
             className="task-status-modal__cancel"
             onClick={onCancel}
           >
-            Cancel
+            {t("tasks.cancel")}
           </button>
         </div>
       </div>

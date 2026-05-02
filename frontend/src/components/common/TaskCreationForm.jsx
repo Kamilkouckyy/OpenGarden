@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./TaskCreationForm.css";
 
 const EMPTY_FORM = {
@@ -40,6 +41,8 @@ function TaskCreationForm({
   onSubmit = () => {},
   onCancel = () => {},
 }) {
+  const { t } = useLanguage();
+
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
 
@@ -86,37 +89,37 @@ function TaskCreationForm({
     const dueDate = values.dueDate.trim();
 
     if (!title) {
-      nextErrors.title = "Enter a task title.";
+      nextErrors.title = t("tasks.errorTaskTitleRequired");
     } else if (title.length > 255) {
-      nextErrors.title = "The task title must be shorter than 255 characters.";
+      nextErrors.title = t("tasks.errorTaskTitleLength");
     }
 
     if (!assignedTo) {
-      nextErrors.assignedTo = "Select an assignee.";
+      nextErrors.assignedTo = t("tasks.errorAssigneeRequired");
     } else if (
       normalizedResolverOptions.length > 0 &&
       !normalizedResolverOptions.includes(assignedTo)
     ) {
-      nextErrors.assignedTo = "Select an assignee from the list.";
+      nextErrors.assignedTo = t("tasks.errorAssigneeFromList");
     }
 
     if (!relatedContext) {
-      nextErrors.relatedContext = "Select a related bed.";
+      nextErrors.relatedContext = t("tasks.errorRelatedBedRequired");
     } else if (relatedContext.length > 255) {
-      nextErrors.relatedContext = "The related context must be shorter than 255 characters.";
+      nextErrors.relatedContext = t("tasks.errorRelatedContextLength");
     } else if (
       normalizedContextOptions.length > 0 &&
       !normalizedContextOptions.includes(relatedContext)
     ) {
-      nextErrors.relatedContext = "Select a bed from the list.";
+      nextErrors.relatedContext = t("tasks.errorBedFromList");
     }
 
     if (!dueDate) {
-      nextErrors.dueDate = "Select a due date.";
+      nextErrors.dueDate = t("tasks.errorDueDateRequired");
     } else if (!isValidDateString(dueDate)) {
-      nextErrors.dueDate = "Enter a valid date in YYYY-MM-DD format.";
+      nextErrors.dueDate = t("tasks.errorDueDateInvalid");
     } else if (dueDate < getTodayValue()) {
-      nextErrors.dueDate = "The due date cannot be in the past.";
+      nextErrors.dueDate = t("tasks.errorDueDatePast");
     }
 
     return nextErrors;
@@ -169,15 +172,15 @@ function TaskCreationForm({
       <section className="task-form" aria-modal="true" role="dialog">
         <header className="task-form__header">
           <div>
-            <p className="task-form__eyebrow">Create</p>
-            <h2 className="task-form__title">New task</h2>
+            <p className="task-form__eyebrow">{t("tasks.createEyebrow")}</p>
+            <h2 className="task-form__title">{t("tasks.newTask")}</h2>
           </div>
           <button
             type="button"
             className="task-form__close"
             onClick={onCancel}
             disabled={disabled}
-            aria-label="Close form"
+            aria-label={t("tasks.closeForm")}
           >
             ×
           </button>
@@ -185,7 +188,7 @@ function TaskCreationForm({
 
         <form className="task-form__body" onSubmit={handleSubmit} noValidate>
           <label className="task-form__field">
-            <span className="task-form__label">Task title</span>
+            <span className="task-form__label">{t("tasks.taskTitle")}</span>
             <input
               type="text"
               value={formData.title}
@@ -194,7 +197,7 @@ function TaskCreationForm({
               disabled={disabled}
               aria-invalid={Boolean(errors.title)}
               aria-describedby={errors.title ? "task-title-error" : undefined}
-              placeholder="e.g. Water the herb bed"
+              placeholder={t("tasks.taskTitlePlaceholder")}
             />
             {errors.title && (
               <span id="task-title-error" className="task-form__error">
@@ -204,15 +207,17 @@ function TaskCreationForm({
           </label>
 
           <label className="task-form__field">
-            <span className="task-form__label">Assign to</span>
+            <span className="task-form__label">{t("tasks.assignTo")}</span>
             <select
               value={formData.assignedTo}
               onChange={updateField("assignedTo")}
               disabled={disabled}
               aria-invalid={Boolean(errors.assignedTo)}
-              aria-describedby={errors.assignedTo ? "task-resolver-error" : undefined}
+              aria-describedby={
+                errors.assignedTo ? "task-resolver-error" : undefined
+              }
             >
-              <option value="">Select an assignee</option>
+              <option value="">{t("tasks.selectAssignee")}</option>
               {normalizedResolverOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -227,15 +232,17 @@ function TaskCreationForm({
           </label>
 
           <label className="task-form__field">
-            <span className="task-form__label">Related bed</span>
+            <span className="task-form__label">{t("tasks.relatedBed")}</span>
             <select
               value={formData.relatedContext}
               onChange={updateField("relatedContext")}
               disabled={disabled}
               aria-invalid={Boolean(errors.relatedContext)}
-              aria-describedby={errors.relatedContext ? "task-context-error" : undefined}
+              aria-describedby={
+                errors.relatedContext ? "task-context-error" : undefined
+              }
             >
-              <option value="">Select a bed</option>
+              <option value="">{t("tasks.selectBed")}</option>
               {normalizedContextOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -250,7 +257,7 @@ function TaskCreationForm({
           </label>
 
           <label className="task-form__field">
-            <span className="task-form__label">Due date</span>
+            <span className="task-form__label">{t("tasks.dueDate")}</span>
             <input
               type="date"
               value={formData.dueDate}
@@ -273,14 +280,14 @@ function TaskCreationForm({
               onClick={onCancel}
               disabled={disabled}
             >
-              Cancel
+              {t("tasks.cancel")}
             </button>
             <button
               type="submit"
               className="task-form__button task-form__button--primary"
               disabled={disabled}
             >
-              Create task
+              {t("tasks.createTask")}
             </button>
           </div>
         </form>

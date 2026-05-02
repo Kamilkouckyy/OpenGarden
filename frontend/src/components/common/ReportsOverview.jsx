@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { reportsApi, equipmentApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
+import { useLanguage } from "../../i18n/LanguageContext";
 import "./ReportsOverview.css";
 
-const STATUS_LABEL = { new: "Nové", in_progress: "Probíhá", resolved: "Vyřešené" };
 const STATUS_NEXT = { new: "in_progress", in_progress: "resolved" };
-const STATUS_NEXT_LABEL = { new: "Zahájit řešení", in_progress: "Označit jako vyřešené" };
 
 export default function ReportsOverview() {
   const { user } = useUser();
+  const { t } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   const [reports, setReports] = useState([]);
@@ -19,6 +19,19 @@ export default function ReportsOverview() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", photoUrl: "", equipmentId: "", context: "" });
   const [formLoading, setFormLoading] = useState(false);
+
+  const getStatusLabel = (status) => {
+    if (status === "new") return t("reports.new");
+    if (status === "in_progress") return t("reports.inProgress");
+    if (status === "resolved") return t("reports.resolved");
+    return status;
+  };
+
+  const getNextStatusLabel = (status) => {
+    if (status === "new") return t("reports.startSolving");
+    if (status === "in_progress") return t("reports.markResolved");
+    return status;
+  };
 
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
@@ -31,11 +44,11 @@ export default function ReportsOverview() {
       setReports(r);
       setEquipment(eq);
     } catch {
-      notify("Nepodařilo se načíst hlášení.", "error");
+      notify(t("reports.loadFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -50,12 +63,12 @@ export default function ReportsOverview() {
         equipmentId: form.equipmentId ? Number(form.equipmentId) : undefined,
         context: form.context || undefined,
       }, user);
-      notify("Hlášení bylo vytvořeno.");
+      notify(t("reports.createSuccess"));
       setShowForm(false);
       setForm({ title: "", description: "", photoUrl: "", equipmentId: "", context: "" });
       load();
     } catch (err) {
-      notify(err.message || "Vytvoření se nezdařilo.", "error");
+      notify(err.message || t("reports.createFailed"), "error");
     } finally {
       setFormLoading(false);
     }
@@ -66,21 +79,21 @@ export default function ReportsOverview() {
     if (!next) return;
     try {
       await reportsApi.update(report.id, { status: next }, user);
-      notify(next === "resolved" ? "Hlášení bylo vyřešeno. Linked úkoly dokončeny." : "Stav byl aktualizován.");
+      notify(next === "resolved" ? t("reports.resolvedSuccess") : t("reports.statusUpdated"));
       load();
     } catch (err) {
-      notify(err.message || "Změna stavu se nezdařila.", "error");
+      notify(err.message || t("reports.statusChangeFailed"), "error");
     }
   };
 
   const handleDelete = async (report) => {
-    if (!window.confirm(`Smazat hlášení „${report.title}"?`)) return;
+    if (!window.confirm(t("reports.deleteConfirm", { title: report.title }))) return;
     try {
       await reportsApi.remove(report.id, user);
-      notify("Hlášení bylo smazáno.", "error");
+      notify(t("reports.deleteSuccess"), "error");
       load();
     } catch (err) {
-      notify(err.message || "Smazání se nezdařilo.", "error");
+      notify(err.message || t("reports.deleteFailed"), "error");
     }
   };
 
@@ -92,13 +105,13 @@ export default function ReportsOverview() {
         <div className="rp-header">
           <div className="rp-title-wrap">
             <span className="rp-icon">⚠️</span>
-            <h1 className="rp-title">Hlášení problémů</h1>
+            <h1 className="rp-title">{t("reports.title")}</h1>
           </div>
-          <button className="rp-btn-add" onClick={() => setShowForm(true)}>+ Nové hlášení</button>
+          <button className="rp-btn-add" onClick={() => setShowForm(true)}>{t("reports.addNew")}</button>
         </div>
 
         <div className="rp-filters">
-          {[["all","Všechna"],["new","Nová"],["in_progress","Probíhají"],["resolved","Vyřešená"]].map(([v,l]) => (
+          {[["all", t("reports.all")], ["new", t("reports.new")], ["in_progress", t("reports.inProgress")], ["resolved", t("reports.resolved")]].map(([v,l]) => (
             <button key={v} className={`rp-filter-btn${filter === v ? " active" : ""}`} onClick={() => setFilter(v)}>
               {l} ({v === "all" ? reports.length : reports.filter(r => r.status === v).length})
             </button>
@@ -106,8 +119,8 @@ export default function ReportsOverview() {
         </div>
 
         <div className="rp-list">
-          {loading && <div className="rp-empty">Načítám hlášení…</div>}
-          {!loading && filtered.length === 0 && <div className="rp-empty">Žádná hlášení k zobrazení.</div>}
+          {loading && <div className="rp-empty">{t("reports.loading")}</div>}
+          {!loading && filtered.length === 0 && <div className="rp-empty">{t("reports.empty")}</div>}
 
           {!loading && filtered.map((report) => {
             const canAct = isAdmin || report.authorId === user?.id;
@@ -116,23 +129,23 @@ export default function ReportsOverview() {
                 <div className="rp-row-main">
                   <div className="rp-row-top">
                     <span className="rp-row-title">{report.title}</span>
-                    <span className={`rp-badge rp-badge--${report.status}`}>{STATUS_LABEL[report.status]}</span>
+                    <span className={`rp-badge rp-badge--${report.status}`}>{getStatusLabel(report.status)}</span>
                   </div>
                   <div className="rp-row-desc">{report.description}</div>
                   <div className="rp-row-meta">
                     {report.context && <span className="rp-tag">{report.context}</span>}
-                    <span className="rp-author">Autor: {report.authorName}</span>
-                    {report.photoUrl && <a href={report.photoUrl} target="_blank" rel="noreferrer" className="rp-photo-link">📷 Foto</a>}
+                    <span className="rp-author">{t("reports.author")}: {report.authorName}</span>
+                    {report.photoUrl && <a href={report.photoUrl} target="_blank" rel="noreferrer" className="rp-photo-link">📷 {t("reports.photo")}</a>}
                   </div>
                 </div>
                 <div className="rp-row-actions">
                   {canAct && STATUS_NEXT[report.status] && (
                     <button className="rp-action-btn rp-advance" onClick={() => handleStatusChange(report)}>
-                      {STATUS_NEXT_LABEL[report.status]}
+                      {getNextStatusLabel(report.status)}
                     </button>
                   )}
                   {canAct && (
-                    <button className="rp-action-btn rp-delete" onClick={() => handleDelete(report)}>Smazat</button>
+                    <button className="rp-action-btn rp-delete" onClick={() => handleDelete(report)}>{t("reports.delete")}</button>
                   )}
                 </div>
               </div>
@@ -144,31 +157,31 @@ export default function ReportsOverview() {
       {showForm && (
         <div className="rp-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="rp-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Nové hlášení</h2>
+            <h2>{t("reports.newReport")}</h2>
             <form onSubmit={handleCreate}>
-              <label>Název <span className="req">*</span></label>
-              <input maxLength={200} required value={form.title} onChange={(e) => setForm(p => ({...p, title: e.target.value}))} placeholder="Stručný popis problému" />
+              <label>{t("reports.name")} <span className="req">*</span></label>
+              <input maxLength={200} required value={form.title} onChange={(e) => setForm(p => ({...p, title: e.target.value}))} placeholder={t("reports.titlePlaceholder")} />
 
-              <label>Popis <span className="req">*</span></label>
-              <textarea required rows={3} value={form.description} onChange={(e) => setForm(p => ({...p, description: e.target.value}))} placeholder="Detailní popis problému…" />
+              <label>{t("reports.description")} <span className="req">*</span></label>
+              <textarea required rows={3} value={form.description} onChange={(e) => setForm(p => ({...p, description: e.target.value}))} placeholder={t("reports.descriptionPlaceholder")} />
 
-              <label>URL fotografie</label>
-              <input type="url" value={form.photoUrl} onChange={(e) => setForm(p => ({...p, photoUrl: e.target.value}))} placeholder="https://…" />
+              <label>{t("reports.photoUrl")}</label>
+              <input type="url" value={form.photoUrl} onChange={(e) => setForm(p => ({...p, photoUrl: e.target.value}))} placeholder={t("reports.photoPlaceholder")} />
 
-              <label>Vybavení (pokud se jedná o poruchu)</label>
+              <label>{t("reports.equipmentHint")}</label>
               <select value={form.equipmentId} onChange={(e) => setForm(p => ({...p, equipmentId: e.target.value}))}>
-                <option value="">— žádné —</option>
+                <option value="">{t("reports.none")}</option>
                 {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
               </select>
 
-              <label>Kontext (místo/popis)</label>
-              <input maxLength={100} value={form.context} onChange={(e) => setForm(p => ({...p, context: e.target.value}))} placeholder="Např. 'Záhon A1' nebo 'Hlavní brána'" />
+              <label>{t("reports.contextHint")}</label>
+              <input maxLength={100} value={form.context} onChange={(e) => setForm(p => ({...p, context: e.target.value}))} placeholder={t("reports.contextPlaceholder")} />
 
               <div className="rp-modal-actions">
                 <button type="submit" disabled={formLoading} className="rp-modal-btn-primary">
-                  {formLoading ? "Odesílám…" : "Odeslat hlášení"}
+                  {formLoading ? t("reports.submitting") : t("reports.submitReport")}
                 </button>
-                <button type="button" className="rp-modal-btn-secondary" onClick={() => setShowForm(false)}>Zrušit</button>
+                <button type="button" className="rp-modal-btn-secondary" onClick={() => setShowForm(false)}>{t("reports.cancel")}</button>
               </div>
             </form>
           </div>

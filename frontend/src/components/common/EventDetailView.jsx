@@ -2,23 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { eventsApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
+import { useLanguage } from "../../i18n/LanguageContext";
 import EventCreationForm from "./EventCreationForm";
 import "./EventDetailView.css";
 
 const RSVP_OPTIONS = ["going", "maybe", "not_going"];
-const RSVP_LABEL = {
-  going: "Zúčastním se",
-  maybe: "Možná",
-  not_going: "Nezúčastním se",
-  "not-going": "Nezúčastním se",
-};
-const STATUS_LABEL = {
-  upcoming: "Nadcházející",
-  ended: "Proběhlá",
-  canceled: "Zrušená",
-  cancelled: "Zrušená",
-  active: "Aktivní",
-};
 
 function isPast(dateStr) {
   if (!dateStr) return false;
@@ -33,11 +21,11 @@ function getVisualStatus(event) {
   return "upcoming";
 }
 
-function formatEventDate(dateStr) {
-  if (!dateStr) return "Datum není nastavené";
+function formatEventDate(dateStr, locale, noDateText) {
+  if (!dateStr) return noDateText;
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
-  return date.toLocaleString("cs-CZ", {
+  return date.toLocaleString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -66,12 +54,30 @@ export default function EventDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useUser();
+  const { t } = useLanguage();
+
   const [event, setEvent] = useState(null);
   const [participations, setParticipations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  const getRsvpLabel = (status) => {
+    if (status === "going") return t("events.goingDetail");
+    if (status === "maybe") return t("events.maybeDetail");
+    if (status === "not_going" || status === "not-going") return t("events.notGoingDetail");
+    return status;
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === "upcoming") return t("events.upcoming");
+    if (status === "ended") return t("events.ended");
+    if (status === "canceled") return t("events.canceled");
+    if (status === "cancelled") return t("events.cancelled");
+    if (status === "active") return t("events.active");
+    return status;
+  };
 
   const notify = useCallback((msg, type = "success") => {
     setNotification({ msg, type });
@@ -88,11 +94,11 @@ export default function EventDetailView() {
       setEvent(eventData);
       setParticipations(Array.isArray(participationData) ? participationData : []);
     } catch (err) {
-      notify(err.message || "Nepodařilo se načíst detail události.", "error");
+      notify(err.message || t("events.loadDetailFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, [id, notify]);
+  }, [id, notify, t]);
 
   useEffect(() => {
     loadDetail();
@@ -111,10 +117,10 @@ export default function EventDetailView() {
     setIsSubmitting(true);
     try {
       await eventsApi.updateParticipation(id, status, user);
-      notify(`RSVP bylo nastaveno: ${RSVP_LABEL[status]}`);
+      notify(t("events.rsvpSaved", { status: getRsvpLabel(status) }));
       await loadDetail();
     } catch (err) {
-      notify(err.message || "RSVP se nepodařilo uložit.", "error");
+      notify(err.message || t("events.rsvpFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -132,25 +138,25 @@ export default function EventDetailView() {
         },
         user,
       );
-      notify("Událost byla upravena.");
+      notify(t("events.updateSuccess"));
       setIsEditing(false);
       await loadDetail();
     } catch (err) {
-      notify(err.message || "Úprava události se nezdařila.", "error");
+      notify(err.message || t("events.updateFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!window.confirm(`Zrušit událost „${event.title}“?`)) return;
+    if (!window.confirm(t("events.cancelConfirm", { title: event.title }))) return;
     setIsSubmitting(true);
     try {
       await eventsApi.cancel(id, user);
-      notify("Událost byla zrušena.");
+      notify(t("events.cancelSuccess"));
       await loadDetail();
     } catch (err) {
-      notify(err.message || "Zrušení události se nezdařilo.", "error");
+      notify(err.message || t("events.cancelFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -160,37 +166,37 @@ export default function EventDetailView() {
     setIsSubmitting(true);
     try {
       await eventsApi.restore(id, user);
-      notify("Událost byla obnovena.");
+      notify(t("events.restoreSuccess"));
       await loadDetail();
     } catch (err) {
-      notify(err.message || "Obnovení události se nezdařilo.", "error");
+      notify(err.message || t("events.restoreFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Trvale smazat událost „${event.title}“?`)) return;
+    if (!window.confirm(t("events.deleteConfirm", { title: event.title }))) return;
     setIsSubmitting(true);
     try {
       await eventsApi.remove(id, user);
-      notify("Událost byla smazána.");
+      notify(t("events.deleteSuccess"));
       navigate("/events");
     } catch (err) {
-      notify(err.message || "Smazání události se nezdařilo.", "error");
+      notify(err.message || t("events.deleteFailed"), "error");
       setIsSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="edv-card edv-loading">Načítám detail události…</div>;
+    return <div className="edv-card edv-loading">{t("events.loadingDetail")}</div>;
   }
 
   if (!event) {
     return (
       <section className="edv-card edv-loading">
-        <p>Událost se nepodařilo najít.</p>
-        <Link className="edv-back" to="/events">← Zpět na události</Link>
+        <p>{t("events.notFound")}</p>
+        <Link className="edv-back" to="/events">{t("events.backToEvents")}</Link>
       </section>
     );
   }
@@ -199,8 +205,8 @@ export default function EventDetailView() {
     <>
       <section className="edv-card">
         <div className="edv-topbar">
-          <Link className="edv-back" to="/events">← Zpět na události</Link>
-          <span className={`edv-status ${visualStatus}`}>{STATUS_LABEL[visualStatus]}</span>
+          <Link className="edv-back" to="/events">{t("events.backToEvents")}</Link>
+          <span className={`edv-status ${visualStatus}`}>{getStatusLabel(visualStatus)}</span>
         </div>
 
         <div className="edv-hero">
@@ -209,16 +215,16 @@ export default function EventDetailView() {
             <h1>{event.title}</h1>
             <div className="edv-meta-grid">
               <div className="edv-meta-item">
-                <span>Datum</span>
-                <strong>{formatEventDate(event.date)}</strong>
+                <span>{t("events.date")}</span>
+                <strong>{formatEventDate(event.date, t("events.locale"), t("events.noDate"))}</strong>
               </div>
               <div className="edv-meta-item">
-                <span>Autor</span>
-                <strong>{event.authorName || `Uživatel #${event.authorId}`}</strong>
+                <span>{t("events.author")}</span>
+                <strong>{event.authorName || t("events.userFallback", { id: event.authorId })}</strong>
               </div>
               <div className="edv-meta-item">
-                <span>Moje RSVP</span>
-                <strong>{myRsvp ? RSVP_LABEL[myRsvp] : "Zatím nevybráno"}</strong>
+                <span>{t("events.myRsvp")}</span>
+                <strong>{myRsvp ? getRsvpLabel(myRsvp) : t("events.noRsvp")}</strong>
               </div>
             </div>
           </div>
@@ -226,16 +232,16 @@ export default function EventDetailView() {
 
         <div className="edv-body-grid">
           <article className="edv-info-panel">
-            <h2>Popis události</h2>
-            <p>{event.description || event.desc || "Popis zatím není vyplněný."}</p>
+            <h2>{t("events.description")}</h2>
+            <p>{event.description || event.desc || t("events.noDescription")}</p>
           </article>
 
           <aside className="edv-rsvp-panel">
-            <h2>RSVP</h2>
+            <h2>{t("events.rsvp")}</h2>
             <div className="edv-rsvp-counts">
-              <span className="going">✓ {stats.going} jdou</span>
-              <span className="maybe">? {stats.maybe} možná</span>
-              <span className="not_going">✕ {stats.not_going} nejdou</span>
+              <span className="going">✓ {stats.going} {t("events.goingCount")}</span>
+              <span className="maybe">? {stats.maybe} {t("events.maybeCount")}</span>
+              <span className="not_going">✕ {stats.not_going} {t("events.notGoingCount")}</span>
             </div>
             <div className="edv-rsvp-actions">
               {RSVP_OPTIONS.map((status) => (
@@ -245,12 +251,12 @@ export default function EventDetailView() {
                   disabled={isSubmitting || rsvpDisabled}
                   onClick={() => handleRsvp(status)}
                 >
-                  {RSVP_LABEL[status]}
+                  {getRsvpLabel(status)}
                 </button>
               ))}
             </div>
             {rsvpDisabled && (
-              <p className="edv-rsvp-note">RSVP lze měnit pouze u aktivní nadcházející události.</p>
+              <p className="edv-rsvp-note">{t("events.rsvpDisabledNote")}</p>
             )}
           </aside>
         </div>
@@ -258,19 +264,19 @@ export default function EventDetailView() {
         {canManage && (
           <div className="edv-action-bar">
             <button className="edv-action edit" onClick={() => setIsEditing(true)} disabled={isSubmitting}>
-              Upravit
+              {t("events.edit")}
             </button>
             {visualStatus === "canceled" ? (
               <button className="edv-action restore" onClick={handleRestore} disabled={isSubmitting}>
-                Obnovit
+                {t("events.restore")}
               </button>
             ) : (
               <button className="edv-action cancel" onClick={handleCancel} disabled={isSubmitting}>
-                Zrušit
+                {t("events.cancel")}
               </button>
             )}
             <button className="edv-action delete" onClick={handleDelete} disabled={isSubmitting}>
-              Smazat
+              {t("events.delete")}
             </button>
           </div>
         )}
@@ -280,8 +286,8 @@ export default function EventDetailView() {
         <div className="edv-modal-overlay" onClick={() => setIsEditing(false)}>
           <div className="edv-modal" onClick={(e) => e.stopPropagation()}>
             <EventCreationForm
-              title="Upravit událost"
-              submitLabel="Uložit změny"
+              title={t("events.editTitle")}
+              submitLabel={t("events.saveChanges")}
               defaultValues={event}
               isSubmitting={isSubmitting}
               onSubmit={handleUpdate}

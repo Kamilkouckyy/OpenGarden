@@ -104,8 +104,8 @@
           box-shadow: 0 6px 20px rgba(0,0,0,0.09);
           transform: translateY(-2px);
         }
-        .gbl-bed-card.obsazený { border-left-color: #1db87a; }
-        .gbl-bed-card.volný { border-left-color: #e8a020; }
+        .gbl-bed-card.obsazený { border-left-color: #e8a020; }
+        .gbl-bed-card.volný { border-left-color: #1db87a; }
 
         .gbl-bed-name {
           font-size: 17px;
@@ -133,8 +133,8 @@
           margin-top: 2px;
           margin-bottom: 14px;
         }
-        .gbl-status.obsazený { background: #e6f7f0; color: #1db87a; }
-        .gbl-status.volný { background: #fdf3e3; color: #e8a020; }
+        .gbl-status.obsazený { background: #fdf3e3; color: #e8a020; }
+        .gbl-status.volný { background: #e6f7f0; color: #1db87a; }
 
         /* Actions */
         .gbl-actions {
