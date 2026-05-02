@@ -31,7 +31,12 @@ export class EquipmentService {
   async create(dto: CreateEquipmentDto, authorId: number) {
     const [item] = await this.db
       .insert(schema.equipment)
-      .values({ ...dto, authorId })
+      .values({
+        name: dto.name,
+        description: dto.description,
+        status: 'functional',
+        authorId,
+      })
       .returning();
     return item;
   }
@@ -81,6 +86,14 @@ export class EquipmentService {
     await this.db
       .update(schema.equipment)
       .set({ status: 'functional' })
+      .where(eq(schema.equipment.id, id));
+  }
+
+  // Voláno System actorem – při vytvoření repair reportu
+  async markNonFunctional(id: number) {
+    await this.db
+      .update(schema.equipment)
+      .set({ status: 'non_functional' })
       .where(eq(schema.equipment.id, id));
   }
 }

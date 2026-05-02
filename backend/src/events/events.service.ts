@@ -23,6 +23,7 @@ export class EventsService {
         id: schema.communityEvents.id,
         title: schema.communityEvents.title,
         description: schema.communityEvents.description,
+        photoUrl: schema.communityEvents.photoUrl,
         date: schema.communityEvents.date,
         status: schema.communityEvents.status,
         authorId: schema.communityEvents.authorId,
@@ -39,6 +40,7 @@ export class EventsService {
         id: schema.communityEvents.id,
         title: schema.communityEvents.title,
         description: schema.communityEvents.description,
+        photoUrl: schema.communityEvents.photoUrl,
         date: schema.communityEvents.date,
         status: schema.communityEvents.status,
         authorId: schema.communityEvents.authorId,
@@ -74,6 +76,7 @@ export class EventsService {
     const data: Partial<typeof schema.communityEvents.$inferInsert> = {
       title: dto.title,
       description: dto.description,
+      photoUrl: dto.photoUrl,
     };
     if (dto.date) data.date = new Date(dto.date);
     const [updated] = await this.db

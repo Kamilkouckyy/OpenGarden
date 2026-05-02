@@ -121,6 +121,7 @@ export default function EventsOverview() {
         {
           title: eventData.title,
           description: eventData.description,
+          photoUrl: eventData.photoUrl,
           date: eventData.date,
         },
         user,
@@ -190,6 +191,9 @@ export default function EventsOverview() {
                       </span>
                     </div>
                     <div className="ev-row-date">📅 {formatEventDate(event.date, t("events.locale"), t("events.noDate"))}</div>
+                    {event.photoUrl && (
+                      <img className="ev-row-photo" src={event.photoUrl} alt="" loading="lazy" />
+                    )}
                     {event.description && <p className="ev-row-desc">{event.description}</p>}
 
                     <div className="ev-rsvp-summary">

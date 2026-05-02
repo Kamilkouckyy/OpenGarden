@@ -21,7 +21,6 @@ export default function EquipmentOverview() {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    status: "functional",
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -58,7 +57,7 @@ export default function EquipmentOverview() {
       await equipmentApi.create(form, user);
       notify(t("equipment.createSuccess", { name: form.name }));
       setShowForm(false);
-      setForm({ name: "", description: "", status: "functional" });
+      setForm({ name: "", description: "" });
       load();
     } catch (err) {
       notify(err.message || t("equipment.createFailed"), "error");
@@ -300,22 +299,6 @@ export default function EquipmentOverview() {
                 }
                 placeholder={t("equipment.descriptionPlaceholder")}
               />
-
-              <label>{t("equipment.status")}</label>
-              <select
-                value={form.status}
-                onChange={(event) =>
-                  setForm((previous) => ({
-                    ...previous,
-                    status: event.target.value,
-                  }))
-                }
-              >
-                <option value="functional">{t("equipment.functional")}</option>
-                <option value="non_functional">
-                  {t("equipment.nonFunctional")}
-                </option>
-              </select>
 
               <div className="eq-modal-actions">
                 <button

@@ -43,26 +43,39 @@ export class GardenBedsController {
   @Post()
   @ApiOperation({ summary: 'Vytvoření záhonu (Admin)' })
   @ApiHeader(AUTH_HEADERS[0])
+  @ApiHeader(AUTH_HEADERS[1])
   @ApiResponse({ status: 201, description: 'Záhon vytvořen' })
-  create(@Body() dto: CreateGardenBedDto) {
-    return this.gardenBedsService.create(dto);
+  create(
+    @Body() dto: CreateGardenBedDto,
+    @Headers('x-user-role') role: string,
+  ) {
+    return this.gardenBedsService.create(dto, role === 'admin');
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Úprava záhonu (Admin)' })
   @ApiHeader(AUTH_HEADERS[0])
+  @ApiHeader(AUTH_HEADERS[1])
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateGardenBedDto) {
-    return this.gardenBedsService.update(id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateGardenBedDto,
+    @Headers('x-user-role') role: string,
+  ) {
+    return this.gardenBedsService.update(id, dto, role === 'admin');
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Smazání záhonu (Admin)' })
   @ApiHeader(AUTH_HEADERS[0])
+  @ApiHeader(AUTH_HEADERS[1])
   @ApiResponse({ status: 204, description: 'Smazáno' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.gardenBedsService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Headers('x-user-role') role: string,
+  ) {
+    return this.gardenBedsService.remove(id, role === 'admin');
   }
 
   @Post(':id/claim')

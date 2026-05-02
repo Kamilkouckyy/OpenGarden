@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class CreateEventDto {
   @ApiProperty({ example: 'Spring Bonfire', maxLength: 200 })
@@ -11,6 +11,12 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/event.jpg', description: 'URL obrázku události' })
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(500)
+  photoUrl?: string;
 
   @ApiProperty({ example: '2025-05-10T17:00:00.000Z', description: 'ISO 8601 datetime' })
   @IsDateString()

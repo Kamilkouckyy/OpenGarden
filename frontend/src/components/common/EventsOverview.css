@@ -212,6 +212,14 @@
   font-weight: 700;
 }
 
+.ev-row-photo {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1.5px solid #e0f0e8;
+}
+
 .ev-row-desc {
   display: -webkit-box;
   overflow: hidden;
