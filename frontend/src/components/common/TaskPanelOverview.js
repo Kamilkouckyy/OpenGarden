@@ -106,7 +106,27 @@ export default function TaskPanelOverview() {
     }
   };
 
-  const filtered = tasks.filter((task) => filter === "all" || task.status === filter);
+const filtered = tasks
+  .filter((task) => filter === "all" || task.status === filter)
+  .sort((a, b) => {
+    const aDone = a.status === "done";
+    const bDone = b.status === "done";
+
+    if (aDone && !bDone) return 1;
+    if (!aDone && bDone) return -1;
+
+    const aOverdue = isOverdue(a.dueDate) && !aDone;
+    const bOverdue = isOverdue(b.dueDate) && !bDone;
+
+    if (aOverdue && !bOverdue) return -1;
+    if (!aOverdue && bOverdue) return 1;
+
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
 
   const getStatusLabel = (status) => {
     if (status === "open") return t("tasks.open");
@@ -149,7 +169,10 @@ export default function TaskPanelOverview() {
             const overdue = isOverdue(task.dueDate) && task.status !== "done";
 
             return (
-              <div key={task.id} className={`tp-task-row${task.status === "done" ? " done" : ""}${overdue ? " overdue" : ""}`}>
+              <div
+                key={task.id}
+                className={`tp-task-row ${STATUS_CLASS[task.status] || "open"}${overdue ? " overdue" : ""}`}
+              >
                 <div className="tp-task-main">
                   <span className={`tp-status-dot ${STATUS_CLASS[task.status]}`} title={getStatusLabel(task.status)} />
                   <div className="tp-task-info">
