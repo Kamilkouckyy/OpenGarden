@@ -63,7 +63,7 @@ export default function EventCreationForm({
       nextErrors.date = t("events.dateInPast");
     }
 
-    if (values.photo && values.photo.length > 255) {
+    if (values.photo && values.photo.length > 500) {
       nextErrors.photo = t("events.photoLimit");
     }
 
@@ -80,7 +80,7 @@ export default function EventCreationForm({
       description: values.description.trim(),
       desc: values.description.trim(),
       date: new Date(values.date).toISOString(),
-      photo: values.photo.trim(),
+      photoUrl: values.photo.trim() || undefined,
     });
   };
 
@@ -151,7 +151,7 @@ export default function EventCreationForm({
         id="event-photo"
         className={`ecf-input${errors.photo ? " has-error" : ""}`}
         value={values.photo}
-        maxLength={256}
+        maxLength={501}
         disabled={isSubmitting}
         onChange={(e) => updateValue("photo", e.target.value)}
         placeholder={t("events.photoPlaceholder")}

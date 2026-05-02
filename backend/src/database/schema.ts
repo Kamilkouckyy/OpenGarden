@@ -98,6 +98,7 @@ export const communityEvents = pgTable('community_events', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 200 }).notNull(),
   description: text('description'),
+  photoUrl: varchar('photo_url', { length: 500 }),
   date: timestamp('event_date').notNull(),
   status: eventStatusEnum('status').default('active').notNull(),
   authorId: integer('author_id')

@@ -55,6 +55,11 @@ export class ReportsService {
       .insert(schema.reports)
       .values({ ...dto, authorId, authorName: user.name, context })
       .returning();
+
+    if (report.equipmentId) {
+      await this.equipmentService.markNonFunctional(report.equipmentId);
+    }
+
     return report;
   }
 

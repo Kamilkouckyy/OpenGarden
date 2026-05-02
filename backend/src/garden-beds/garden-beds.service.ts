@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -28,12 +29,18 @@ export class GardenBedsService {
     return bed;
   }
 
-  async create(dto: CreateGardenBedDto) {
+  async create(dto: CreateGardenBedDto, isAdmin: boolean) {
+    if (!isAdmin) {
+      throw new ForbiddenException('Pouze admin může vytvářet záhony');
+    }
     const [bed] = await this.db.insert(schema.gardenBeds).values(dto).returning();
     return bed;
   }
 
-  async update(id: number, dto: UpdateGardenBedDto) {
+  async update(id: number, dto: UpdateGardenBedDto, isAdmin: boolean) {
+    if (!isAdmin) {
+      throw new ForbiddenException('Pouze admin může upravovat záhony');
+    }
     await this.findOne(id);
     const [bed] = await this.db
       .update(schema.gardenBeds)
@@ -43,7 +50,10 @@ export class GardenBedsService {
     return bed;
   }
 
-  async remove(id: number) {
+  async remove(id: number, isAdmin: boolean) {
+    if (!isAdmin) {
+      throw new ForbiddenException('Pouze admin může mazat záhony');
+    }
     const bed = await this.findOne(id);
     // Cascade: smaž linked tasks a reports (dle AGENTS.md – System actor)
     await this.db

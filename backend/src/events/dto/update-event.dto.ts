@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class UpdateEventDto {
   @ApiPropertyOptional()
@@ -12,6 +12,12 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/event.jpg' })
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(500)
+  photoUrl?: string;
 
   @ApiPropertyOptional({ example: '2025-05-10T17:00:00.000Z' })
   @IsOptional()

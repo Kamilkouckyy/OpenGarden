@@ -134,6 +134,7 @@ export default function EventDetailView() {
         {
           title: eventData.title,
           description: eventData.description,
+          photoUrl: eventData.photoUrl,
           date: eventData.date,
         },
         user,
@@ -232,6 +233,9 @@ export default function EventDetailView() {
 
         <div className="edv-body-grid">
           <article className="edv-info-panel">
+            {event.photoUrl && (
+              <img className="edv-photo" src={event.photoUrl} alt="" />
+            )}
             <h2>{t("events.description")}</h2>
             <p>{event.description || event.desc || t("events.noDescription")}</p>
           </article>

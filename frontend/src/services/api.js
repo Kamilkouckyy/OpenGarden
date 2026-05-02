@@ -5,13 +5,23 @@ async function request(path, options = {}) {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
   });
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err = data || {};
     const msg = Array.isArray(err.message) ? err.message.join(', ') : err.message;
     throw new Error(msg || `HTTP ${res.status}`);
   }
-  if (res.status === 204) return null;
-  return res.json();
+
+  return data;
 }
 
 function authHeaders(user) {
