@@ -13,3 +13,4 @@ backend/.nyc_output/
 # Legacy backend artifacts
 backend/DB_sql/
 
+frontend/.env
