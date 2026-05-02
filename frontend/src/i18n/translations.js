@@ -1,6 +1,7 @@
 export const translations = {
   en: {
     nav: {
+      switchLanguage: "Switch language",
       ariaLabel: "Main navigation",
       toggleMenu: "Toggle menu",
       gardenBeds: "Garden Beds",
@@ -306,6 +307,7 @@ export const translations = {
 
   cs: {
     nav: {
+      switchLanguage: "Přepnout jazyk",
       ariaLabel: "Hlavní navigace",
       toggleMenu: "Přepnout menu",
       gardenBeds: "Záhony",

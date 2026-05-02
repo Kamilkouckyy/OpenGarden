@@ -4,7 +4,11 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import "./Navbar.css";
 
 export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+
+  const toggleLanguage = () => {
+    setLanguage(language === "cs" ? "en" : "cs");
+  };
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -57,6 +61,16 @@ export default function Navbar({ user, navItems = [], onLogin, onLogout }) {
             </li>
           ))}
         </ul>
+
+        <button
+          type="button"
+          className="og-lang-btn"
+          onClick={toggleLanguage}
+          aria-label={t("nav.switchLanguage")}
+          title={t("nav.switchLanguage")}
+        >
+          {language === "cs" ? "CZ" : "EN"}
+        </button>
 
         <div className="og-user" ref={userMenuRef}>
           {user ? (
