@@ -32,12 +32,12 @@ export class CreateTaskDto {
   resolverId?: number;
 
   @ApiPropertyOptional({
-    enum: ['plot', 'report', 'event'],
+    enum: ['plot', 'report', 'event', 'equipment'],
     description: 'Typ entity, ke které je úkol přiřazen',
   })
   @IsOptional()
-  @IsEnum(['plot', 'report', 'event'])
-  linkedType?: 'plot' | 'report' | 'event';
+  @IsEnum(['plot', 'report', 'event', 'equipment'])
+  linkedType?: 'plot' | 'report' | 'event' | 'equipment';
 
   @ApiPropertyOptional({ example: 3, description: 'ID entity (musí být vyplněno spolu s linkedType)' })
   @ValidateIf((o) => o.linkedType !== undefined)

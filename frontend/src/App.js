@@ -11,6 +11,7 @@ import EquipmentOverview from "./components/common/EquipmentOverview";
 import EventsOverview from "./components/common/EventsOverview";
 import LoginScreen from "./components/auth/LoginScreen";
 import EventDetailView from "./components/common/EventDetailView";
+import ReportDetail from "./components/common/ReportDetail";
 import "./App.css";
 
 function AppShell() {
@@ -42,6 +43,7 @@ function AppShell() {
           <Route path="/tasks" element={<TaskPanelOverview />} />
           <Route path="/tasks/:id" element={<TaskDetailCard />} />
           <Route path="/reports" element={<ReportsOverview />} />
+          <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="/equipment" element={<EquipmentOverview />} />
           <Route path="/events" element={<EventsOverview />} />
           <Route path="/events/:id" element={<EventDetailView />} />

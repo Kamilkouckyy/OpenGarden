@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { reportsApi, equipmentApi } from "../../services/api";
+import { Link, useNavigate } from "react-router-dom";
+import { reportsApi, equipmentApi, tasksApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./ReportsOverview.css";
@@ -7,12 +8,14 @@ import "./ReportsOverview.css";
 const STATUS_NEXT = { new: "in_progress", in_progress: "resolved" };
 
 export default function ReportsOverview() {
+  const navigate = useNavigate();
   const { user } = useUser();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   const [reports, setReports] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [filter, setFilter] = useState("all");
@@ -21,6 +24,10 @@ export default function ReportsOverview() {
 
   const [notification, setNotification] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [openSections, setOpenSections] = useState({});
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -43,16 +50,70 @@ export default function ReportsOverview() {
     return status;
   };
 
+  const resetForm = () => {
+    setForm({
+      title: "",
+      description: "",
+      photoUrl: "",
+      equipmentId: "",
+      context: "",
+    });
+  };
+
+  const openCreateModal = () => {
+    setEditTarget(null);
+    resetForm();
+    setShowForm(true);
+  };
+
+  const openEditModal = (report) => {
+    setEditTarget(report);
+    setForm({
+      title: report.title || "",
+      description: report.description || "",
+      photoUrl: report.photoUrl || "",
+      equipmentId: report.equipmentId ? String(report.equipmentId) : "",
+      context: report.context || "",
+    });
+    setShowForm(true);
+  };
+
+  const toggleSection = (reportId, section) => {
+    setOpenSections((previous) => ({
+      ...previous,
+      [reportId]: {
+        description: false,
+        discussion: false,
+        tasks: false,
+        ...(previous[reportId] || {}),
+        [section]: !previous[reportId]?.[section],
+      },
+    }));
+  };
+
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 2800);
   };
 
+  const formatDeadline = (value) => {
+    if (!value) return "";
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    const locale = language === "cs" ? "cs-CZ" : "en-GB";
+    return new Intl.DateTimeFormat(locale).format(date);
+  };
+
   const load = useCallback(async () => {
     try {
-      const [r, eq] = await Promise.all([reportsApi.list(), equipmentApi.list()]);
+      const [r, eq, taskList] = await Promise.all([
+        reportsApi.list(),
+        equipmentApi.list(),
+        tasksApi.list(),
+      ]);
       setReports(r);
       setEquipment(eq);
+      setTasks(taskList);
     } catch {
       notify(t("reports.loadFailed"), "error");
     } finally {
@@ -69,29 +130,31 @@ export default function ReportsOverview() {
     setFormLoading(true);
 
     try {
-      await reportsApi.create(
-        {
-          title: form.title,
-          description: form.description,
-          photoUrl: form.photoUrl || undefined,
-          equipmentId: form.equipmentId ? Number(form.equipmentId) : undefined,
-          context: form.context || undefined,
-        },
-        user
-      );
+      const payload = {
+        title: form.title,
+        description: form.description,
+        photoUrl: form.photoUrl || undefined,
+        equipmentId: form.equipmentId ? Number(form.equipmentId) : undefined,
+        context: form.context || undefined,
+      };
 
-      notify(t("reports.createSuccess"));
+      if (editTarget) {
+        await reportsApi.update(editTarget.id, payload, user);
+        notify(t("reports.updateSuccess"));
+      } else {
+        await reportsApi.create(payload, user);
+        notify(t("reports.createSuccess"));
+      }
+
       setShowForm(false);
-      setForm({
-        title: "",
-        description: "",
-        photoUrl: "",
-        equipmentId: "",
-        context: "",
-      });
+      setEditTarget(null);
+      resetForm();
       load();
     } catch (err) {
-      notify(err.message || t("reports.createFailed"), "error");
+      notify(
+        err.message || (editTarget ? t("reports.updateFailed") : t("reports.createFailed")),
+        "error"
+      );
     } finally {
       setFormLoading(false);
     }
@@ -115,10 +178,6 @@ export default function ReportsOverview() {
   };
 
   const handleDelete = async (report) => {
-    if (!window.confirm(t("reports.deleteConfirm", { title: report.title }))) {
-      return;
-    }
-
     try {
       await reportsApi.remove(report.id, user);
       notify(t("reports.deleteSuccess"), "error");
@@ -211,11 +270,7 @@ export default function ReportsOverview() {
               ))}
             </div>
 
-            <button
-              type="button"
-              className="rp-btn-add"
-              onClick={() => setShowForm(true)}
-            >
+            <button type="button" className="rp-btn-add" onClick={openCreateModal}>
               {t("reports.addNew")}
             </button>
           </div>
@@ -234,6 +289,17 @@ export default function ReportsOverview() {
             {!loading &&
               activeReports.map((report) => {
                 const canAct = isAdmin || report.authorId === user?.id;
+                const linkedActiveTasks = tasks.filter(
+                  (task) =>
+                    task.linkedType === "report" &&
+                    Number(task.linkedId) === Number(report.id) &&
+                    task.status !== "done"
+                ).sort((a, b) => {
+                  if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+                  if (a.dueDate) return -1;
+                  if (b.dueDate) return 1;
+                  return (a.title || "").localeCompare(b.title || "", language === "cs" ? "cs" : "en");
+                });
 
                 return (
                   <div
@@ -241,7 +307,9 @@ export default function ReportsOverview() {
                     className={`rp-report-card rp-report-card--${report.status}`}
                   >
                     <div className="rp-report-top">
-                      <span className="rp-report-title">{report.title}</span>
+                      <Link className="rp-report-title" to={`/reports/${report.id}`}>
+                        {report.title}
+                      </Link>
 
                       <div className="rp-status-line">
                         <span className="rp-status-label">
@@ -254,20 +322,63 @@ export default function ReportsOverview() {
                     </div>
 
                     <div className="rp-collapse-list">
-                      <div className="rp-collapse-row">
-                        <span className="rp-collapse-arrow">▶</span>
+                      <button
+                        type="button"
+                        className="rp-collapse-row rp-collapse-toggle"
+                        aria-expanded={Boolean(openSections[report.id]?.description)}
+                        onClick={() => toggleSection(report.id, "description")}
+                      >
+                        <span className={`rp-collapse-arrow${openSections[report.id]?.description ? " open" : ""}`}>▶</span>
                         <span>{t("reports.showDescription")}</span>
-                      </div>
+                      </button>
 
-                      <div className="rp-collapse-row">
-                        <span className="rp-collapse-arrow">▶</span>
+                      {openSections[report.id]?.description && (
+                        <div className="rp-collapse-content">{report.description || t("reports.noDescription")}</div>
+                      )}
+
+                      <button
+                        type="button"
+                        className="rp-collapse-row rp-collapse-toggle"
+                        aria-expanded={Boolean(openSections[report.id]?.discussion)}
+                        onClick={() => toggleSection(report.id, "discussion")}
+                      >
+                        <span className={`rp-collapse-arrow${openSections[report.id]?.discussion ? " open" : ""}`}>▶</span>
                         <span>{t("reports.discussion")} (1)</span>
-                      </div>
+                      </button>
 
-                      <div className="rp-collapse-row">
-                        <span className="rp-collapse-arrow">▶</span>
-                        <span>{t("reports.activeTasks")} (0)</span>
-                      </div>
+                      {openSections[report.id]?.discussion && (
+                        <div className="rp-collapse-content">{t("reports.discussionUnavailable")}</div>
+                      )}
+
+                      <button
+                        type="button"
+                        className="rp-collapse-row rp-collapse-toggle"
+                        aria-expanded={Boolean(openSections[report.id]?.tasks)}
+                        onClick={() => toggleSection(report.id, "tasks")}
+                      >
+                        <span className={`rp-collapse-arrow${openSections[report.id]?.tasks ? " open" : ""}`}>▶</span>
+                        <span>{t("reports.activeTasks")} ({linkedActiveTasks.length})</span>
+                      </button>
+
+                      {openSections[report.id]?.tasks && (
+                        <div className="rp-collapse-content">
+                          {linkedActiveTasks.length === 0
+                            ? t("reports.noLinkedTasks")
+                            : (
+                              <ul className="rp-task-list">
+                                {linkedActiveTasks.map((task) => (
+                                  <li key={task.id} className="rp-task-item">
+                                    <span className="rp-task-icon" aria-hidden="true">⏳</span>
+                                    <span>{task.title}</span>
+                                    {task.dueDate && (
+                                      <span className="rp-task-deadline">({formatDeadline(task.dueDate)})</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="rp-report-actions">
@@ -281,7 +392,13 @@ export default function ReportsOverview() {
                         </button>
                       )}
 
-                      <button type="button" className="rp-action-btn rp-task">
+                      <button
+                        type="button"
+                        className="rp-action-btn rp-task"
+                        onClick={() =>
+                          navigate(`/tasks?linkedType=report&linkedId=${report.id}`)
+                        }
+                      >
                         {t("reports.createTask")}
                       </button>
 
@@ -290,7 +407,7 @@ export default function ReportsOverview() {
                       </button>
 
                       {canAct && (
-                        <button type="button" className="rp-action-btn rp-edit">
+                        <button type="button" className="rp-action-btn rp-edit" onClick={() => openEditModal(report)}>
                           {t("reports.edit")}
                         </button>
                       )}
@@ -299,7 +416,7 @@ export default function ReportsOverview() {
                         <button
                           type="button"
                           className="rp-action-btn rp-delete"
-                          onClick={() => handleDelete(report)}
+                          onClick={() => setDeleteTarget(report)}
                         >
                           {t("reports.delete")}
                         </button>
@@ -311,19 +428,47 @@ export default function ReportsOverview() {
           </div>
         </section>
 
-        <div className="rp-archive">
-          <span className="rp-archive-arrow">▶</span>
+        <button
+          type="button"
+          className="rp-archive rp-collapse-toggle"
+          aria-expanded={archiveOpen}
+          onClick={() => setArchiveOpen((previous) => !previous)}
+        >
+          <span className={`rp-archive-arrow rp-collapse-arrow${archiveOpen ? " open" : ""}`}>▶</span>
           <span className="rp-archive-icon">▣</span>
           <span>
             {t("reports.resolvedArchive")} ({resolvedReports.length})
           </span>
-        </div>
+        </button>
+
+        {archiveOpen && (
+          <div className="rp-archive-list">
+            {resolvedReports.length === 0 ? (
+              <div className="rp-empty">{t("reports.empty")}</div>
+            ) : (
+              resolvedReports.map((report) => (
+                <div key={report.id} className="rp-archive-item">
+                  <Link className="rp-report-title" to={`/reports/${report.id}`}>
+                    {report.title}
+                  </Link>
+                  <span className={`rp-badge rp-badge--${report.status}`}>{getStatusLabel(report.status)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {showForm && (
-        <div className="rp-modal-overlay" onClick={() => setShowForm(false)}>
+        <div
+          className="rp-modal-overlay"
+          onClick={() => {
+            setShowForm(false);
+            setEditTarget(null);
+          }}
+        >
           <div className="rp-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{t("reports.newReport")}</h2>
+            <h2>{editTarget ? t("reports.edit") : t("reports.newReport")}</h2>
 
             <form onSubmit={handleCreate}>
               <label>
@@ -410,18 +555,54 @@ export default function ReportsOverview() {
                 >
                   {formLoading
                     ? t("reports.submitting")
-                    : t("reports.submitReport")}
+                    : editTarget
+                      ? t("reports.edit")
+                      : t("reports.submitReport")}
                 </button>
 
                 <button
                   type="button"
                   className="rp-modal-btn-secondary"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditTarget(null);
+                  }}
                 >
                   {t("reports.cancel")}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="rp-modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="rp-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>{t("reports.deleteConfirm", { title: deleteTarget.title })}</h2>
+            <p>{t("reports.deleteHint")}</p>
+
+            <div className="rp-modal-actions">
+              <button
+                type="button"
+                className="rp-modal-btn-primary"
+                onClick={async () => {
+                  const target = deleteTarget;
+                  setDeleteTarget(null);
+                  await handleDelete(target);
+                }}
+              >
+                {t("reports.delete")}
+              </button>
+
+              <button
+                type="button"
+                className="rp-modal-btn-secondary"
+                onClick={() => setDeleteTarget(null)}
+              >
+                {t("reports.cancel")}
+              </button>
+            </div>
           </div>
         </div>
       )}

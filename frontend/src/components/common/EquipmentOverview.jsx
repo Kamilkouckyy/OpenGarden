@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { equipmentApi } from "../../services/api";
+import { useNavigate } from "react-router-dom";
+import { equipmentApi, tasksApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./EquipmentOverview.css";
 
 export default function EquipmentOverview() {
+  const navigate = useNavigate();
   const { user } = useUser();
   const { t } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   const [items, setItems] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [filter, setFilter] = useState("all");
@@ -18,6 +21,8 @@ export default function EquipmentOverview() {
 
   const [notification, setNotification] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [openAccordion, setOpenAccordion] = useState({});
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -30,6 +35,18 @@ export default function EquipmentOverview() {
     return status;
   };
 
+  const toggleAccordion = (itemId, section) => {
+    setOpenAccordion((previous) => ({
+      ...previous,
+      [itemId]: {
+        info: false,
+        tasks: false,
+        ...(previous[itemId] || {}),
+        [section]: !(previous[itemId]?.[section]),
+      },
+    }));
+  };
+
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 2800);
@@ -37,7 +54,12 @@ export default function EquipmentOverview() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await equipmentApi.list());
+      const [equipmentList, taskList] = await Promise.all([
+        equipmentApi.list(),
+        tasksApi.list(),
+      ]);
+      setItems(equipmentList);
+      setTasks(taskList);
     } catch {
       notify(t("equipment.loadFailed"), "error");
     } finally {
@@ -80,10 +102,6 @@ export default function EquipmentOverview() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(t("equipment.deleteConfirm", { name: item.name }))) {
-      return;
-    }
-
     try {
       await equipmentApi.remove(item.id, user);
       notify(t("equipment.deleteSuccess", { name: item.name }), "error");
@@ -187,6 +205,14 @@ export default function EquipmentOverview() {
             filtered.map((item) => {
               const canAct = isAdmin || item.authorId === user?.id;
               const isFunctional = item.status === "functional";
+              const infoOpen = Boolean(openAccordion[item.id]?.info);
+              const tasksOpen = Boolean(openAccordion[item.id]?.tasks);
+              const linkedActiveTasks = tasks.filter(
+                (task) =>
+                  task.linkedType === "equipment" &&
+                  Number(task.linkedId) === Number(item.id) &&
+                  task.status !== "done"
+              );
 
               return (
                 <div
@@ -209,20 +235,40 @@ export default function EquipmentOverview() {
                   </div>
 
                   <div className="eq-collapse-list">
-                    <div className="eq-collapse-row">
-                      <span className="eq-collapse-arrow">▶</span>
+                    <button
+                      type="button"
+                      className="eq-collapse-row eq-collapse-toggle"
+                      aria-expanded={infoOpen}
+                      onClick={() => toggleAccordion(item.id, "info")}
+                    >
+                      <span className={`eq-collapse-arrow${infoOpen ? " open" : ""}`}>▶</span>
                       <span>{t("equipment.informationLocation")}</span>
-                    </div>
+                    </button>
 
-                    <div className="eq-collapse-row">
-                      <span className="eq-collapse-arrow">▶</span>
-                      <span>{t("equipment.activeTasks")} (0)</span>
-                    </div>
+                    {infoOpen && (
+                      <div className="eq-collapse-content">
+                        {item.description || t("equipment.noDescription")}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="eq-collapse-row eq-collapse-toggle"
+                      aria-expanded={tasksOpen}
+                      onClick={() => toggleAccordion(item.id, "tasks")}
+                    >
+                      <span className={`eq-collapse-arrow${tasksOpen ? " open" : ""}`}>▶</span>
+                      <span>{t("equipment.activeTasks")} ({linkedActiveTasks.length})</span>
+                    </button>
+
+                    {tasksOpen && (
+                      <div className="eq-collapse-content">
+                        {linkedActiveTasks.length === 0
+                          ? t("equipment.noLinkedTasks")
+                          : linkedActiveTasks.map((task) => task.title).join(" | ")}
+                      </div>
+                    )}
                   </div>
-
-                  {item.description && (
-                    <p className="eq-item-desc">{item.description}</p>
-                  )}
 
                   <div className="eq-item-actions">
                     {canAct && (
@@ -239,7 +285,13 @@ export default function EquipmentOverview() {
                       </button>
                     )}
 
-                    <button type="button" className="eq-action-btn eq-task">
+                    <button
+                      type="button"
+                      className="eq-action-btn eq-task"
+                      onClick={() =>
+                        navigate(`/tasks?linkedType=equipment&linkedId=${item.id}`)
+                      }
+                    >
                       {t("equipment.createTask")}
                     </button>
 
@@ -253,7 +305,7 @@ export default function EquipmentOverview() {
                       <button
                         type="button"
                         className="eq-action-btn eq-delete"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => setDeleteTarget(item)}
                       >
                         {t("equipment.delete")}
                       </button>
@@ -318,6 +370,37 @@ export default function EquipmentOverview() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="eq-modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="eq-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>{t("equipment.deleteConfirm", { name: deleteTarget.name })}</h2>
+            <p>{t("equipment.deleteHint")}</p>
+
+            <div className="eq-modal-actions">
+              <button
+                type="button"
+                className="eq-modal-btn-primary"
+                onClick={async () => {
+                  const target = deleteTarget;
+                  setDeleteTarget(null);
+                  await handleDelete(target);
+                }}
+              >
+                {t("equipment.delete")}
+              </button>
+
+              <button
+                type="button"
+                className="eq-modal-btn-secondary"
+                onClick={() => setDeleteTarget(null)}
+              >
+                {t("equipment.cancel")}
+              </button>
+            </div>
           </div>
         </div>
       )}

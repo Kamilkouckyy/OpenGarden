@@ -19,7 +19,7 @@ export const gardenBedStatusEnum = pgEnum('garden_bed_status', ['free', 'occupie
 
 export const taskStatusEnum = pgEnum('task_status', ['open', 'in_progress', 'done']);
 
-export const taskLinkedTypeEnum = pgEnum('task_linked_type', ['plot', 'report', 'event']);
+export const taskLinkedTypeEnum = pgEnum('task_linked_type', ['plot', 'report', 'event', 'equipment']);
 
 export const equipmentStatusEnum = pgEnum('equipment_status', ['functional', 'non_functional']);
 

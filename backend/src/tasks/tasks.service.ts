@@ -54,6 +54,12 @@ export class TasksService {
         .from(schema.communityEvents)
         .where(eq(schema.communityEvents.id, dto.linkedId));
       context = event ? `Event: ${event.title}` : 'Event';
+    } else if (dto.linkedType === 'equipment' && dto.linkedId) {
+      const [item] = await this.db
+        .select({ name: schema.equipment.name })
+        .from(schema.equipment)
+        .where(eq(schema.equipment.id, dto.linkedId));
+      context = item ? `Equipment: ${item.name}` : 'Equipment';
     }
 
     const [task] = await this.db
@@ -99,7 +105,7 @@ export class TasksService {
   }
 
   // Voláno System actorem z jiných service
-  async autoCompleteLinked(linkedType: 'plot' | 'report' | 'event', linkedId: number) {
+  async autoCompleteLinked(linkedType: 'plot' | 'report' | 'event' | 'equipment', linkedId: number) {
     await this.db
       .update(schema.tasks)
       .set({ status: 'done' })

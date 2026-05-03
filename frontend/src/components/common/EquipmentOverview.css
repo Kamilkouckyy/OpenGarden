@@ -7,7 +7,7 @@
 
   background: #ffffff;
   border: 1px solid #e2e8ea;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 28px 32px 32px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
 }
@@ -186,7 +186,7 @@
   padding: 18px 18px 16px;
   border: 1.5px solid #dfe8ee;
   border-left: 5px solid #10b981;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -278,17 +278,41 @@
   gap: 7px;
   padding: 8px 11px;
   border: 1.5px solid #dfe8ee;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #f8fafc;
   color: #475569;
   font-size: 13px;
   font-weight: 800;
 }
 
+.eq-collapse-toggle {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.eq-collapse-toggle:hover {
+  background: #eef8f3;
+}
+
 .eq-collapse-arrow {
   color: #64748b;
   font-size: 11px;
   line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.eq-collapse-arrow.open {
+  transform: rotate(90deg);
+}
+
+.eq-collapse-content {
+  padding: 4px 12px 10px 19px;
+  color: #355e4f;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
 }
 
 .eq-item-desc {
@@ -301,15 +325,15 @@
   gap: 9px;
   margin-top: auto;
   padding-top: 14px;
-  border-top: 1.5px solid #e8edf1;
+  border-top: 1.5px solid #d7eadf;
 }
 
 .eq-action-btn {
   min-height: 34px;
-  border-radius: 6px;
-  border: 1.5px solid #dfe8ee;
-  background: #f8fafc;
-  color: #2563eb;
+  border-radius: 8px;
+  border: 1.5px solid #d7eadf;
+  background: #f7fbf8;
+  color: #147a58;
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 800;
@@ -324,7 +348,7 @@
 }
 
 .eq-break {
-  border-color: #fecaca;
+  border-color: #f2c5bd;
   background: #fff7f7;
   color: #ef4444;
 }
@@ -344,23 +368,23 @@
 }
 
 .eq-task {
-  border-color: #dbe5f2;
-  background: #f3f7fd;
-  color: #2563eb;
+  border-color: #d7eadf;
+  background: #f7fbf8;
+  color: #147a58;
 }
 
 .eq-task:hover {
-  background: #eaf2ff;
+  background: #eef8f3;
 }
 
 .eq-edit {
-  border-color: #dbe5f2;
-  background: #f3f7fd;
-  color: #2563eb;
+  border-color: #d7eadf;
+  background: #f7fbf8;
+  color: #147a58;
 }
 
 .eq-edit:hover {
-  background: #eaf2ff;
+  background: #eef8f3;
 }
 
 .eq-delete {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { tasksApi, gardenBedsApi, reportsApi, eventsApi } from "../../services/api";
+import { tasksApi, gardenBedsApi, reportsApi, eventsApi, equipmentApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./TaskPanelOverview.css";
@@ -14,7 +14,7 @@ function isOverdue(dueDate) {
 
 export default function TaskPanelOverview() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useUser();
   const { t } = useLanguage();
   const isAdmin = user?.role === "admin";
@@ -28,11 +28,13 @@ export default function TaskPanelOverview() {
   const [beds, setBeds] = useState([]);
   const [reports, setReports] = useState([]);
   const [events, setEvents] = useState([]);
+  const [equipment, setEquipment] = useState([]);
   const [form, setForm] = useState({
     title: "", description: "", dueDate: "",
     resolverId: "", linkedType: "", linkedId: "",
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [openedFromQuery, setOpenedFromQuery] = useState(false);
 
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
@@ -52,16 +54,37 @@ export default function TaskPanelOverview() {
 
   useEffect(() => { load(); }, [load]);
 
-  const openForm = async () => {
-    const linkedType = searchParams.get("linkedType") || "";
-    const linkedId = searchParams.get("linkedId") || "";
+  const openForm = useCallback(async (prefill = {}) => {
+    const linkedType = prefill.linkedType ?? searchParams.get("linkedType") ?? "";
+    const linkedId = prefill.linkedId ?? searchParams.get("linkedId") ?? "";
     setForm({ title: "", description: "", dueDate: "", resolverId: "", linkedType, linkedId });
     setShowForm(true);
     try {
-      const [b, r, e] = await Promise.all([gardenBedsApi.list(), reportsApi.list(), eventsApi.list()]);
-      setBeds(b); setReports(r); setEvents(e);
+      const [b, r, e, eq] = await Promise.all([
+        gardenBedsApi.list(),
+        reportsApi.list(),
+        eventsApi.list(),
+        equipmentApi.list(),
+      ]);
+      setBeds(b);
+      setReports(r);
+      setEvents(e);
+      setEquipment(eq);
     } catch {}
-  };
+  }, [searchParams]);
+
+  useEffect(() => {
+    const linkedType = searchParams.get("linkedType");
+    const linkedId = searchParams.get("linkedId");
+
+    if (!linkedType || !linkedId || openedFromQuery) {
+      return;
+    }
+
+    setOpenedFromQuery(true);
+    openForm({ linkedType, linkedId });
+    setSearchParams({}, { replace: true });
+  }, [openForm, openedFromQuery, searchParams, setSearchParams]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -226,6 +249,7 @@ const filtered = tasks
                 <option value="plot">{t("tasks.gardenBed")}</option>
                 <option value="report">{t("tasks.report")}</option>
                 <option value="event">{t("tasks.event")}</option>
+                <option value="equipment">{t("tasks.equipment")}</option>
               </select>
 
               {form.linkedType === "plot" && (
@@ -244,6 +268,12 @@ const filtered = tasks
                 <select value={form.linkedId} onChange={(e) => setForm(p => ({...p, linkedId: e.target.value}))}>
                   <option value="">{t("tasks.selectEvent")}</option>
                   {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
+                </select>
+              )}
+              {form.linkedType === "equipment" && (
+                <select value={form.linkedId} onChange={(e) => setForm(p => ({...p, linkedId: e.target.value}))}>
+                  <option value="">{t("tasks.selectEquipment")}</option>
+                  {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
                 </select>
               )}
 
