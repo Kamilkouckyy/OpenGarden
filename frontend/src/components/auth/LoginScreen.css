@@ -24,6 +24,14 @@
   letter-spacing: -0.5px;
 }
 
+.login-hint {
+  color: #355e4f;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  margin: -8px 0 22px;
+  text-align: center;
+}
+
 .login-tabs {
   display: flex;
   border-radius: 10px;
@@ -112,6 +120,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.2s;
+}
+
+.login-submit--secondary {
+  background: #fff;
+  border: 1.5px solid #147a58;
+  color: #147a58;
 }
 
 .login-submit:hover { opacity: 0.9; }

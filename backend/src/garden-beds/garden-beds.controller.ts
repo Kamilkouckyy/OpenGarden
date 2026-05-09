@@ -3,25 +3,24 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GardenBedsService } from './garden-beds.service';
 import { CreateGardenBedDto } from './dto/create-garden-bed.dto';
 import { UpdateGardenBedDto } from './dto/update-garden-bed.dto';
-
-const AUTH_HEADERS = [
-  { name: 'X-User-Id', description: 'ID přihlášeného uživatele', required: true },
-  { name: 'X-User-Role', description: '"admin" nebo "member"', required: false },
-];
+import { BetterAuthGuard } from '../auth/better-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AppUser } from '../auth/better-auth.service';
 
 @ApiTags('garden-beds')
 @Controller('garden-beds')
+@UseGuards(BetterAuthGuard)
 export class GardenBedsController {
   constructor(private readonly gardenBedsService: GardenBedsService) {}
 
@@ -42,64 +41,59 @@ export class GardenBedsController {
 
   @Post()
   @ApiOperation({ summary: 'Vytvoření záhonu (Admin)' })
-  @ApiHeader(AUTH_HEADERS[0])
-  @ApiHeader(AUTH_HEADERS[1])
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 201, description: 'Záhon vytvořen' })
   create(
     @Body() dto: CreateGardenBedDto,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.gardenBedsService.create(dto, role === 'admin');
+    return this.gardenBedsService.create(dto, user.role === 'admin');
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Úprava záhonu (Admin)' })
-  @ApiHeader(AUTH_HEADERS[0])
-  @ApiHeader(AUTH_HEADERS[1])
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGardenBedDto,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.gardenBedsService.update(id, dto, role === 'admin');
+    return this.gardenBedsService.update(id, dto, user.role === 'admin');
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Smazání záhonu (Admin)' })
-  @ApiHeader(AUTH_HEADERS[0])
-  @ApiHeader(AUTH_HEADERS[1])
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.gardenBedsService.remove(id, role === 'admin');
+    return this.gardenBedsService.remove(id, user.role === 'admin');
   }
 
   @Post(':id/claim')
   @ApiOperation({ summary: 'Rezervace záhonu' })
-  @ApiHeader(AUTH_HEADERS[0])
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 201, description: 'Záhon rezervován' })
   @ApiResponse({ status: 400, description: 'Záhon není volný nebo uživatel již záhon má' })
   claim(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.gardenBedsService.claim(id, parseInt(userId, 10));
+    return this.gardenBedsService.claim(id, user.id);
   }
 
   @Post(':id/release')
   @ApiOperation({ summary: 'Uvolnění záhonu' })
-  @ApiHeader(AUTH_HEADERS[0])
-  @ApiHeader(AUTH_HEADERS[1])
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Záhon uvolněn' })
   release(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.gardenBedsService.release(id, parseInt(userId, 10), role === 'admin');
+    return this.gardenBedsService.release(id, user.id, user.role === 'admin');
   }
 }

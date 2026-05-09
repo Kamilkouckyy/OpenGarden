@@ -15,18 +15,22 @@ import ReportDetail from "./components/common/ReportDetail";
 import "./App.css";
 
 function AppShell() {
-  const { user, setUser } = useUser();
+  const { user, loading, logout } = useUser();
   const { t } = useLanguage();
 
+  if (loading) {
+    return <div className="app-main">Načítám přihlášení…</div>;
+  }
+
   if (!user) {
-    return <LoginScreen onLogin={setUser} />;
+    return <LoginScreen />;
   }
 
   return (
     <div>
       <Navbar
         user={user}
-        onLogout={() => setUser(null)}
+        onLogout={logout}
         navItems={[
           { path: "/garden-beds", label: t("nav.gardenBeds") },
           { path: "/tasks", label: t("nav.tasks") },

@@ -3,20 +3,24 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { BetterAuthGuard } from '../auth/better-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AppUser } from '../auth/better-auth.service';
 
 @ApiTags('tasks')
 @Controller('tasks')
+@UseGuards(BetterAuthGuard)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
@@ -37,55 +41,49 @@ export class TasksController {
 
   @Post()
   @ApiOperation({ summary: 'Vytvoření úkolu' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 201, description: 'Úkol vytvořen' })
   create(
     @Body() dto: CreateTaskDto,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.tasksService.create(dto, parseInt(userId, 10));
+    return this.tasksService.create(dto, user.id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Úprava úkolu (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
   @ApiResponse({ status: 403, description: 'Pouze autor nebo admin' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTaskDto,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.tasksService.update(id, dto, parseInt(userId, 10), role === 'admin');
+    return this.tasksService.update(id, dto, user.id, user.role === 'admin');
   }
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Přepnutí stavu úkolu (toggle)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Stav přepnut' })
   toggleStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.tasksService.toggleStatus(id, parseInt(userId, 10), role === 'admin');
+    return this.tasksService.toggleStatus(id, user.id, user.role === 'admin');
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Smazání úkolu (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 204, description: 'Smazáno' })
   @ApiResponse({ status: 403, description: 'Pouze autor nebo admin' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.tasksService.remove(id, parseInt(userId, 10), role === 'admin');
+    return this.tasksService.remove(id, user.id, user.role === 'admin');
   }
 }

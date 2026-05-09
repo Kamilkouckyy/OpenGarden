@@ -3,22 +3,26 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
+import { BetterAuthGuard } from '../auth/better-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AppUser } from '../auth/better-auth.service';
 
 @ApiTags('events')
 @Controller('events')
+@UseGuards(BetterAuthGuard)
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
@@ -39,68 +43,60 @@ export class EventsController {
 
   @Post()
   @ApiOperation({ summary: 'Vytvoření komunitní akce' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 201, description: 'Akce vytvořena' })
   @ApiResponse({ status: 400, description: 'Datum v minulosti' })
   create(
     @Body() dto: CreateEventDto,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.create(dto, parseInt(userId, 10));
+    return this.eventsService.create(dto, user.id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Úprava akce (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEventDto,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.update(id, dto, parseInt(userId, 10), role === 'admin');
+    return this.eventsService.update(id, dto, user.id, user.role === 'admin');
   }
 
   @Patch(':id/cancel')
   @ApiOperation({ summary: 'Zrušení akce (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Akce zrušena' })
   cancel(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.cancel(id, parseInt(userId, 10), role === 'admin');
+    return this.eventsService.cancel(id, user.id, user.role === 'admin');
   }
 
   @Patch(':id/restore')
   @ApiOperation({ summary: 'Obnovení zrušené akce (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Akce obnovena' })
   restore(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.restore(id, parseInt(userId, 10), role === 'admin');
+    return this.eventsService.restore(id, user.id, user.role === 'admin');
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Smazání akce (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.remove(id, parseInt(userId, 10), role === 'admin');
+    return this.eventsService.remove(id, user.id, user.role === 'admin');
   }
 
   @Get(':id/participations')
@@ -112,14 +108,14 @@ export class EventsController {
 
   @Put(':id/participation')
   @ApiOperation({ summary: 'Nastavení RSVP statusu (UC5)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Účast aktualizována' })
   @ApiResponse({ status: 400, description: 'Akce je zrušena' })
   updateParticipation(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateParticipationDto,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.eventsService.updateParticipation(id, parseInt(userId, 10), dto);
+    return this.eventsService.updateParticipation(id, user.id, dto);
   }
 }

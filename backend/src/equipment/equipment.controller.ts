@@ -3,20 +3,24 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EquipmentService } from './equipment.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { BetterAuthGuard } from '../auth/better-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AppUser } from '../auth/better-auth.service';
 
 @ApiTags('equipment')
 @Controller('equipment')
+@UseGuards(BetterAuthGuard)
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
@@ -37,13 +41,13 @@ export class EquipmentController {
 
   @Post()
   @ApiOperation({ summary: 'Registrace nového vybavení' })
-  @ApiHeader({ name: 'X-User-Id', description: 'ID přihlášeného uživatele', required: true })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 201, description: 'Vybavení zaregistrováno' })
   create(
     @Body() dto: CreateEquipmentDto,
-    @Headers('x-user-id') userId: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.equipmentService.create(dto, parseInt(userId, 10));
+    return this.equipmentService.create(dto, user.id);
   }
 
   @Patch(':id')
@@ -51,29 +55,25 @@ export class EquipmentController {
     summary: 'Úprava vybavení (Author / Admin)',
     description: 'Status "ok" se nastavuje automaticky při vyřešení repair reportu.',
   })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 200, description: 'Aktualizováno' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEquipmentDto,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.equipmentService.update(id, dto, parseInt(userId, 10), role === 'admin');
+    return this.equipmentService.update(id, dto, user.id, user.role === 'admin');
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Smazání vybavení (Author / Admin)' })
-  @ApiHeader({ name: 'X-User-Id', required: true })
-  @ApiHeader({ name: 'X-User-Role', required: false })
+  @ApiHeader({ name: 'Cookie', description: 'Better Auth session cookie', required: true })
   @ApiResponse({ status: 204, description: 'Smazáno' })
   remove(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @CurrentUser() user: AppUser,
   ) {
-    return this.equipmentService.remove(id, parseInt(userId, 10), role === 'admin');
+    return this.equipmentService.remove(id, user.id, user.role === 'admin');
   }
 }

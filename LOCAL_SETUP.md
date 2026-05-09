@@ -65,6 +65,32 @@ npm run start:dev
 Backend běží na: http://localhost:3000  
 Swagger dokumentace: http://localhost:3000/api/docs
 
+### Better Auth / OAuth nastavení
+
+Backend používá Better Auth session cookies a OAuth přihlášení přes Google nebo Microsoft.
+V `backend/.env` nastav:
+
+```
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=<dlouhý náhodný secret>
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3001
+CORS_ORIGINS=http://localhost:3001,http://localhost:3000
+
+GOOGLE_CLIENT_ID=<Google OAuth client id>
+GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
+
+MICROSOFT_CLIENT_ID=<Microsoft Entra application client id>
+MICROSOFT_CLIENT_SECRET=<Microsoft Entra client secret>
+MICROSOFT_TENANT_ID=common
+```
+
+Callback URL pro lokální OAuth aplikace:
+
+- Google: `http://localhost:3000/api/auth/callback/google`
+- Microsoft: `http://localhost:3000/api/auth/callback/microsoft`
+
+Pro produkci nastav stejné callback cesty na produkční backend doméně a přidej frontend doménu do `BETTER_AUTH_TRUSTED_ORIGINS` a `CORS_ORIGINS`.
+
 ---
 
 ## 3. Frontend (React) – port 3001
@@ -84,8 +110,10 @@ Frontend běží na: http://localhost:3001
 ## Přihlášení
 
 1. Otevři http://localhost:3001
-2. Zaregistruj se (záložka "Registrovat") – zadej jméno, e-mail a heslo
-3. Nebo použij existujícího uživatele (záložka "Přihlásit se") – stačí jen e-mail
+2. Klikni na "Pokračovat přes Google" nebo "Pokračovat přes Microsoft".
+3. Po úspěšném OAuth přihlášení se uživatel automaticky založí v aplikační tabulce `users` jako `member`, pokud ještě neexistuje.
+
+Admin role se nenastavuje z frontendu. Pro lokální vývoj ji vytvoří seed uživatel `admin@opengarden.cz`; pro OAuth admina musí mít aplikační tabulka `users` záznam se stejným e-mailem a rolí `admin`.
 
 ---
 

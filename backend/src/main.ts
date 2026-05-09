@@ -1,16 +1,35 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
+import { BetterAuthService } from './auth/better-auth.service';
+
+const loadEsm = new Function('specifier', 'return import(specifier)') as <T = any>(
+  specifier: string,
+) => Promise<T>;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
 
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3001,http://localhost:3000')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Role'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   });
+
+  const betterAuthService = app.get(BetterAuthService);
+  const betterAuth = await betterAuthService.getAuth();
+  const { toNodeHandler } = await loadEsm<{ toNodeHandler: any }>('better-auth/node');
+  const expressApp = app.getHttpAdapter().getInstance();
+
+  expressApp.all('/api/auth/*', toNodeHandler(betterAuth));
+  app.use(json());
+  app.use(urlencoded({ extended: true }));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -24,12 +43,10 @@ async function bootstrap() {
     .setTitle('OpenGarden API')
     .setDescription(
       'REST API pro správu komunitní zahrady.\n\n' +
-        '**Autentizace:** Přihlas se přes `POST /auth/login` a získej JWT token. ' +
-        'Token předávej jako `Authorization: Bearer <token>` header.',
+        '**Autentizace:** Přihlášení probíhá přes Better Auth OAuth endpointy na `/api/auth/*`.',
     )
     .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth', 'Přihlášení a JWT')
+    .addTag('auth', 'Better Auth OAuth session')
     .addTag('users', 'Správa uživatelů')
     .addTag('garden-beds', 'Záhony – rezervace a správa')
     .addTag('tasks', 'Úkoly')
