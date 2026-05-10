@@ -5,7 +5,7 @@ import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./ReportDetail.css";
 
-const STATUS_NEXT = { new: "in_progress", in_progress: "resolved" };
+const STATUS_NEXT = { new: "in_progress", in_progress: "resolved", resolved: "new" };
 
 export default function ReportDetail() {
   const { id } = useParams();
