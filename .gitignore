@@ -14,3 +14,4 @@ backend/.nyc_output/
 backend/DB_sql/
 
 frontend/.env
+neon.txt
