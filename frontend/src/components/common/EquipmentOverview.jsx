@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { equipmentApi, tasksApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
@@ -220,7 +220,7 @@ export default function EquipmentOverview() {
                   className={`eq-item-card${isFunctional ? "" : " broken"}`}
                 >
                   <div className="eq-item-top">
-                    <span className="eq-item-name">{item.name}</span>
+                    <Link className="eq-item-name" to={`/equipment/${item.id}`}>{item.name}</Link>
 
                     <div className="eq-status-line">
                       <span className="eq-status-label">
@@ -295,11 +295,13 @@ export default function EquipmentOverview() {
                       {t("equipment.createTask")}
                     </button>
 
-                    {canAct && (
-                      <button type="button" className="eq-action-btn eq-edit">
-                        {t("equipment.edit")}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="eq-action-btn eq-edit"
+                      onClick={() => navigate(`/equipment/${item.id}`)}
+                    >
+                      {t("equipment.detail")}
+                    </button>
 
                     {canAct && (
                       <button

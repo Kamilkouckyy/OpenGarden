@@ -273,6 +273,23 @@
   margin-top: 4px;
 }
 
+.ev-rsvp-summary-button {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ev-rsvp-summary-button:hover .ev-rsvp-count {
+  filter: brightness(0.96);
+}
+
+.ev-rsvp-summary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .ev-rsvp-count {
   padding: 4px 9px;
   border-radius: 7px;
@@ -304,6 +321,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 8px;
   min-width: 140px;
 }
 
@@ -372,7 +390,7 @@
   }
 
   .ev-detail-btn {
-    width: 100%;
+    width: auto;
   }
 
   .ev-card {

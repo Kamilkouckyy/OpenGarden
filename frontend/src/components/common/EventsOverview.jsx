@@ -4,6 +4,7 @@ import { eventsApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import EventCreationForm from "./EventCreationForm";
+import EventParticipationModal from "./EventParticipationModal";
 import "./EventsOverview.css";
 
 function isPast(dateStr) {
@@ -18,18 +19,15 @@ function getVisualStatus(event) {
   return "upcoming";
 }
 
-function formatEventDate(dateStr, locale, noDateText) {
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function formatEventDate(dateStr, noDateText) {
   if (!dateStr) return noDateText;
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
-  return date.toLocaleString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function getParticipationStats(participants = []) {
@@ -53,6 +51,8 @@ export default function EventsOverview() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
+  const [participationTarget, setParticipationTarget] = useState(null);
+  const [selectedParticipation, setSelectedParticipation] = useState("");
   const [notification, setNotification] = useState(null);
 
   const getStatusLabel = (status) => {
@@ -123,6 +123,7 @@ export default function EventsOverview() {
           description: eventData.description,
           photoUrl: eventData.photoUrl,
           date: eventData.date,
+          context: eventData.context,
         },
         user,
       );
@@ -131,6 +132,32 @@ export default function EventsOverview() {
       await loadEvents();
     } catch (err) {
       notify(err.message || t("events.createFailed"), "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  const openParticipationModal = (event) => {
+    const current = (participations[event.id] || []).find(
+      (item) => Number(item.userId) === Number(user?.id)
+    );
+
+    setParticipationTarget(event);
+    setSelectedParticipation(current?.status === "not-going" ? "not_going" : current?.status || "going");
+  };
+
+  const handleParticipationSave = async () => {
+    if (!participationTarget || !selectedParticipation) return;
+
+    setIsSubmitting(true);
+    try {
+      await eventsApi.updateParticipation(participationTarget.id, selectedParticipation, user);
+      notify(t("events.participationSaved", { status: t(`events.${selectedParticipation === "not_going" ? "notGoing" : selectedParticipation}`) }));
+      setParticipationTarget(null);
+      await loadEvents();
+    } catch (err) {
+      notify(err.message || t("events.rsvpFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,17 +217,24 @@ export default function EventsOverview() {
                         {getStatusLabel(visualStatus)}
                       </span>
                     </div>
-                    <div className="ev-row-date">📅 {formatEventDate(event.date, t("events.locale"), t("events.noDate"))}</div>
+                    <div className="ev-row-date">📅 {formatEventDate(event.date, t("events.noDate"))}</div>
+                    {event.context && <div className="ev-row-date">📍 {event.context}</div>}
                     {event.photoUrl && (
                       <img className="ev-row-photo" src={event.photoUrl} alt="" loading="lazy" />
                     )}
                     {event.description && <p className="ev-row-desc">{event.description}</p>}
 
-                    <div className="ev-rsvp-summary">
+                    <button
+                      type="button"
+                      className="ev-rsvp-summary ev-rsvp-summary-button"
+                      disabled={isSubmitting || visualStatus !== "upcoming"}
+                      onClick={() => openParticipationModal(event)}
+                      title={visualStatus === "upcoming" ? t("events.participation") : t("events.rsvpDisabledNote")}
+                    >
                       <span className="ev-rsvp-count going">✓ {t("events.going")}: {stats.going}</span>
                       <span className="ev-rsvp-count maybe">? {t("events.maybe")}: {stats.maybe}</span>
                       <span className="ev-rsvp-count not_going">✕ {t("events.notGoing")}: {stats.not_going}</span>
-                    </div>
+                    </button>
                   </div>
 
                   <div className="ev-row-actions">
@@ -225,6 +259,15 @@ export default function EventsOverview() {
           </div>
         </div>
       )}
+
+      <EventParticipationModal
+        isOpen={Boolean(participationTarget)}
+        selectedStatus={selectedParticipation}
+        isSubmitting={isSubmitting}
+        onChange={setSelectedParticipation}
+        onSave={handleParticipationSave}
+        onCancel={() => setParticipationTarget(null)}
+      />
 
       {notification && <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>}
     </>

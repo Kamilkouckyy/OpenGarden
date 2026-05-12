@@ -21,18 +21,15 @@ function getVisualStatus(event) {
   return "upcoming";
 }
 
-function formatEventDate(dateStr, locale, noDateText) {
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function formatEventDate(dateStr, noDateText) {
   if (!dateStr) return noDateText;
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
-  return date.toLocaleString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function normalizeRsvp(status) {
@@ -117,7 +114,7 @@ export default function EventDetailView() {
     setIsSubmitting(true);
     try {
       await eventsApi.updateParticipation(id, status, user);
-      notify(t("events.rsvpSaved", { status: getRsvpLabel(status) }));
+      notify(t("events.participationSaved", { status: getRsvpLabel(status) }));
       await loadDetail();
     } catch (err) {
       notify(err.message || t("events.rsvpFailed"), "error");
@@ -136,6 +133,7 @@ export default function EventDetailView() {
           description: eventData.description,
           photoUrl: eventData.photoUrl,
           date: eventData.date,
+          context: eventData.context,
         },
         user,
       );
@@ -217,14 +215,18 @@ export default function EventDetailView() {
             <div className="edv-meta-grid">
               <div className="edv-meta-item">
                 <span>{t("events.date")}</span>
-                <strong>{formatEventDate(event.date, t("events.locale"), t("events.noDate"))}</strong>
+                <strong>{formatEventDate(event.date, t("events.noDate"))}</strong>
               </div>
               <div className="edv-meta-item">
                 <span>{t("events.author")}</span>
                 <strong>{event.authorName || t("events.userFallback", { id: event.authorId })}</strong>
               </div>
               <div className="edv-meta-item">
-                <span>{t("events.myRsvp")}</span>
+                <span>{t("events.location")}</span>
+                <strong>{event.context || t("events.noLocation")}</strong>
+              </div>
+              <div className="edv-meta-item">
+                <span>{t("events.myParticipation")}</span>
                 <strong>{myRsvp ? getRsvpLabel(myRsvp) : t("events.noRsvp")}</strong>
               </div>
             </div>
@@ -241,7 +243,7 @@ export default function EventDetailView() {
           </article>
 
           <aside className="edv-rsvp-panel">
-            <h2>{t("events.rsvp")}</h2>
+            <h2>{t("events.participation")}</h2>
             <div className="edv-rsvp-counts">
               <span className="going">✓ {stats.going} {t("events.goingCount")}</span>
               <span className="maybe">? {stats.maybe} {t("events.maybeCount")}</span>

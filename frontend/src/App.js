@@ -3,11 +3,11 @@ import { UserProvider, useUser } from "./context/UserContext";
 import { LanguageProvider, useLanguage } from "./i18n/LanguageContext";
 import Navbar from "./components/layout/Navbar";
 import GardenBedOverview from "./components/common/GardenBedOverview";
-import GardenBedDetailview from "./components/common/GardenBedDetailview";
 import TaskPanelOverview from "./components/common/TaskPanelOverview";
 import TaskDetailCard from "./components/common/TaskDetailCard";
 import ReportsOverview from "./components/common/ReportsOverview";
 import EquipmentOverview from "./components/common/EquipmentOverview";
+import EquipmentDetail from "./components/common/EquipmentDetail";
 import EventsOverview from "./components/common/EventsOverview";
 import LoginScreen from "./components/auth/LoginScreen";
 import EventDetailView from "./components/common/EventDetailView";
@@ -39,12 +39,13 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<Navigate to="/garden-beds" replace />} />
           <Route path="/garden-beds" element={<GardenBedOverview />} />
-          <Route path="/garden-beds/:id" element={<GardenBedDetailview />} />
+          <Route path="/garden-beds/:id" element={<Navigate to="/garden-beds" replace />} />
           <Route path="/tasks" element={<TaskPanelOverview />} />
           <Route path="/tasks/:id" element={<TaskDetailCard />} />
           <Route path="/reports" element={<ReportsOverview />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="/equipment" element={<EquipmentOverview />} />
+          <Route path="/equipment/:id" element={<EquipmentDetail />} />
           <Route path="/events" element={<EventsOverview />} />
           <Route path="/events/:id" element={<EventDetailView />} />
           <Route path="*" element={<Navigate to="/garden-beds" replace />} />
