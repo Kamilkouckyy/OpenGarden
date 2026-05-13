@@ -1,22 +1,38 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./EventCreationForm.css";
 
 const TITLE_LIMIT = 100;
 const DESCRIPTION_LIMIT = 2000;
 
-function toDateTimeLocalValue(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+function pad(value) {
+  return String(value).padStart(2, "0");
 }
 
-function getMinDateTimeLocal() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
+function toDisplayDateTime(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return "";
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function parseDisplayDateTime(value) {
+  const match = value.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  const [, day, month, year, hour, minute] = match.map(Number);
+  const date = new Date(year, month - 1, day, hour, minute);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
 export default function EventCreationForm({
@@ -30,12 +46,12 @@ export default function EventCreationForm({
 }) {
   const { t } = useLanguage();
 
-  const minDate = useMemo(() => getMinDateTimeLocal(), []);
   const [values, setValues] = useState({
     title: defaultValues.title || "",
     description: defaultValues.description || defaultValues.desc || "",
-    date: toDateTimeLocalValue(defaultValues.date),
+    date: toDisplayDateTime(defaultValues.date),
     photo: defaultValues.photo || defaultValues.photoUrl || "",
+    context: defaultValues.context || "",
   });
   const [errors, setErrors] = useState({});
 
@@ -57,9 +73,13 @@ export default function EventCreationForm({
       nextErrors.description = t("events.descriptionLimit", { limit: DESCRIPTION_LIMIT });
     }
 
-    if (!values.date) {
+    const parsedDate = parseDisplayDateTime(values.date);
+
+    if (!values.date.trim()) {
       nextErrors.date = t("events.dateRequired");
-    } else if (new Date(values.date) < new Date()) {
+    } else if (!parsedDate) {
+      nextErrors.date = t("events.dateInvalid");
+    } else if (parsedDate < new Date()) {
       nextErrors.date = t("events.dateInPast");
     }
 
@@ -75,12 +95,15 @@ export default function EventCreationForm({
     e.preventDefault();
     if (!validate()) return;
 
+    const parsedDate = parseDisplayDateTime(values.date);
+
     onSubmit?.({
       title: values.title.trim(),
       description: values.description.trim(),
       desc: values.description.trim(),
-      date: new Date(values.date).toISOString(),
+      date: parsedDate.toISOString(),
       photoUrl: values.photo.trim() || undefined,
+      context: values.context.trim() || undefined,
     });
   };
 
@@ -119,12 +142,12 @@ export default function EventCreationForm({
       </label>
       <input
         id="event-date"
-        type="datetime-local"
-        min={minDate}
+        type="text"
         className={`ecf-input${errors.date ? " has-error" : ""}`}
         value={values.date}
         disabled={isSubmitting}
         onChange={(e) => updateValue("date", e.target.value)}
+        placeholder={t("events.dateTimePlaceholder")}
       />
       {errors.date && <span className="ecf-error block">{errors.date}</span>}
 
@@ -158,13 +181,15 @@ export default function EventCreationForm({
       />
       {errors.photo && <span className="ecf-error block">{errors.photo}</span>}
 
-      <label className="ecf-label" htmlFor="event-context">{t("events.context")}</label>
+      <label className="ecf-label" htmlFor="event-context">{t("events.location")}</label>
       <input
         id="event-context"
         className="ecf-input"
-        value={t("events.contextValue")}
-        disabled
-        title={t("events.contextTitle")}
+        value={values.context}
+        maxLength={100}
+        disabled={isSubmitting}
+        onChange={(e) => updateValue("context", e.target.value)}
+        placeholder={t("events.locationPlaceholder")}
       />
 
       <div className="ecf-actions">

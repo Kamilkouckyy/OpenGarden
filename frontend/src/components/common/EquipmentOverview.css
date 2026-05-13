@@ -224,6 +224,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.eq-item-name:hover {
+  text-decoration: underline;
 }
 
 .eq-status-line {

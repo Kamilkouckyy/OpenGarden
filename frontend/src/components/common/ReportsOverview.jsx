@@ -91,6 +91,22 @@ export default function ReportsOverview() {
     }));
   };
 
+  const toggleAllSections = (reportId) => {
+    setOpenSections((previous) => {
+      const current = previous[reportId] || {};
+      const shouldOpen = !(current.description && current.discussion && current.tasks);
+
+      return {
+        ...previous,
+        [reportId]: {
+          description: shouldOpen,
+          discussion: shouldOpen,
+          tasks: shouldOpen,
+        },
+      };
+    });
+  };
+
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 2800);
@@ -213,12 +229,12 @@ export default function ReportsOverview() {
       return Number(b.id || 0) - Number(a.id || 0);
     });
 
-  const activeReports = visibleReports.filter(
-    (report) => report.status !== "resolved"
-  );
-  const resolvedReports = visibleReports.filter(
-    (report) => report.status === "resolved"
-  );
+  const activeReports = filter === "resolved"
+    ? visibleReports
+    : visibleReports.filter((report) => report.status !== "resolved");
+  const resolvedReports = filter === "resolved"
+    ? []
+    : visibleReports.filter((report) => report.status === "resolved");
 
   return (
     <>
@@ -305,11 +321,20 @@ export default function ReportsOverview() {
                   <div
                     key={report.id}
                     className={`rp-report-card rp-report-card--${report.status}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleAllSections(report.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleAllSections(report.id);
+                      }
+                    }}
                   >
                     <div className="rp-report-top">
-                      <Link className="rp-report-title" to={`/reports/${report.id}`}>
+                      <span className="rp-report-title">
                         {report.title}
-                      </Link>
+                      </span>
 
                       <div className="rp-status-line">
                         <span className="rp-status-label">
@@ -326,7 +351,7 @@ export default function ReportsOverview() {
                         type="button"
                         className="rp-collapse-row rp-collapse-toggle"
                         aria-expanded={Boolean(openSections[report.id]?.description)}
-                        onClick={() => toggleSection(report.id, "description")}
+                        onClick={(event) => { event.stopPropagation(); toggleSection(report.id, "description"); }}
                       >
                         <span className={`rp-collapse-arrow${openSections[report.id]?.description ? " open" : ""}`}>▶</span>
                         <span>{t("reports.showDescription")}</span>
@@ -340,7 +365,7 @@ export default function ReportsOverview() {
                         type="button"
                         className="rp-collapse-row rp-collapse-toggle"
                         aria-expanded={Boolean(openSections[report.id]?.discussion)}
-                        onClick={() => toggleSection(report.id, "discussion")}
+                        onClick={(event) => { event.stopPropagation(); toggleSection(report.id, "discussion"); }}
                       >
                         <span className={`rp-collapse-arrow${openSections[report.id]?.discussion ? " open" : ""}`}>▶</span>
                         <span>{t("reports.discussion")} (1)</span>
@@ -354,7 +379,7 @@ export default function ReportsOverview() {
                         type="button"
                         className="rp-collapse-row rp-collapse-toggle"
                         aria-expanded={Boolean(openSections[report.id]?.tasks)}
-                        onClick={() => toggleSection(report.id, "tasks")}
+                        onClick={(event) => { event.stopPropagation(); toggleSection(report.id, "tasks"); }}
                       >
                         <span className={`rp-collapse-arrow${openSections[report.id]?.tasks ? " open" : ""}`}>▶</span>
                         <span>{t("reports.activeTasks")} ({linkedActiveTasks.length})</span>
@@ -381,7 +406,7 @@ export default function ReportsOverview() {
                       )}
                     </div>
 
-                    <div className="rp-report-actions">
+                    <div className="rp-report-actions" onClick={(event) => event.stopPropagation()}>
                       {canAct && STATUS_NEXT[report.status] && (
                         <button
                           type="button"
@@ -402,8 +427,12 @@ export default function ReportsOverview() {
                         {t("reports.createTask")}
                       </button>
 
-                      <button type="button" className="rp-action-btn rp-comment">
-                        {t("reports.comment")}
+                      <button
+                        type="button"
+                        className="rp-action-btn rp-comment"
+                        onClick={() => navigate(`/reports/${report.id}`)}
+                      >
+                        {t("reports.detail")}
                       </button>
 
                       {canAct && (

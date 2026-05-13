@@ -49,6 +49,7 @@ npm run db:seed
 Seed je bezpečné spustit vícekrát (pokud admin již existuje, přeskočí se).
 
 Výchozí admin přihlašovací údaje:
+
 - **E-mail:** `admin@opengarden.cz`
 - **Heslo:** `admin123`
 
@@ -62,8 +63,8 @@ npm install          # první spuštění
 npm run start:dev
 ```
 
-Backend běží na: http://localhost:3000  
-Swagger dokumentace: http://localhost:3000/api/docs
+Backend běží na: [http://localhost:3000](http://localhost:3000)  
+Swagger dokumentace: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ### Better Auth / OAuth nastavení
 
@@ -103,13 +104,13 @@ npm install          # první spuštění
 PORT=3001 npm start
 ```
 
-Frontend běží na: http://localhost:3001
+Frontend běží na: [http://localhost:3001](http://localhost:3001)
 
 ---
 
 ## Přihlášení
 
-1. Otevři http://localhost:3001
+1. Otevři [http://localhost:3001](http://localhost:3001)
 2. Klikni na "Pokračovat přes Google" nebo "Pokračovat přes Microsoft".
 3. Po úspěšném OAuth přihlášení se uživatel automaticky založí v aplikační tabulce `users` jako `member`, pokud ještě neexistuje.
 
@@ -178,8 +179,11 @@ npm run db:migrate
 
 ## Struktura portů
 
-| Služba   | Port | URL                          |
-|----------|------|------------------------------|
-| Backend  | 3000 | http://localhost:3000        |
-| Swagger  | 3000 | http://localhost:3000/api/docs |
-| Frontend | 3001 | http://localhost:3001        |
+
+| Služba   | Port | URL                                                              |
+| -------- | ---- | ---------------------------------------------------------------- |
+| Backend  | 3000 | [http://localhost:3000](http://localhost:3000)                   |
+| Swagger  | 3000 | [http://localhost:3000/api/docs](http://localhost:3000/api/docs) |
+| Frontend | 3001 | [http://localhost:3001](http://localhost:3001)                   |
+
+

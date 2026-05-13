@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { gardenBedsApi } from "../../services/api";
+import { gardenBedsApi, tasksApi } from "../../services/api";
 import { useUser } from "../../context/UserContext";
 import { useLanguage } from "../../i18n/LanguageContext";
 import "./GardenBedOverview.css";
@@ -21,6 +21,10 @@ export default function GardenBedOverview() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", description: "" });
   const [addLoading, setAddLoading] = useState(false);
+
+  const [taskTarget, setTaskTarget] = useState(null);
+  const [taskForm, setTaskForm] = useState({ title: "", dueDate: "", description: "" });
+  const [taskLoading, setTaskLoading] = useState(false);
 
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
@@ -84,6 +88,39 @@ export default function GardenBedOverview() {
       notify(err.message || t("gardenBeds.createFailed"), "error");
     } finally {
       setAddLoading(false);
+    }
+  };
+
+
+  const openTaskModal = (bed) => {
+    setTaskTarget(bed);
+    setTaskForm({ title: "", dueDate: "", description: "" });
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!taskTarget) return;
+
+    setTaskLoading(true);
+    try {
+      await tasksApi.create(
+        {
+          title: taskForm.title,
+          dueDate: taskForm.dueDate || undefined,
+          description: taskForm.description || undefined,
+          resolverId: user?.id,
+          linkedType: "plot",
+          linkedId: Number(taskTarget.id),
+        },
+        user
+      );
+      notify(t("tasks.createdSuccess"));
+      setTaskTarget(null);
+      setTaskForm({ title: "", dueDate: "", description: "" });
+    } catch (err) {
+      notify(err.message || t("tasks.createFailed"), "error");
+    } finally {
+      setTaskLoading(false);
     }
   };
 
@@ -156,8 +193,6 @@ export default function GardenBedOverview() {
               <div
                 key={bed.id}
                 className={`gbl-bed-card ${statusLabel}`}
-                onClick={() => navigate(`/garden-beds/${bed.id}`)}
-                style={{ cursor: "pointer" }}
               >
                 <div className="gbl-bed-name">{bed.name}</div>
                 <div className="gbl-bed-info">{t("gardenBeds.status")}: <strong>{statusText}</strong></div>
@@ -182,7 +217,7 @@ export default function GardenBedOverview() {
                       {t("gardenBeds.release")}
                     </button>
                   )}
-                  <button className="gbl-action task" onClick={() => navigate(`/tasks?linkedType=plot&linkedId=${bed.id}&bedName=${encodeURIComponent(bed.name)}`)}>
+                  <button className="gbl-action task" onClick={() => openTaskModal(bed)}>
                     {t("gardenBeds.addTask")}
                   </button>
                   <button className="gbl-action report" onClick={() => navigate(`/reports?bedName=${encodeURIComponent(bed.name)}`)}>
@@ -226,6 +261,54 @@ export default function GardenBedOverview() {
                 </button>
                 <button type="button" className="gbl-modal-btn-secondary" onClick={() => setShowAddModal(false)}>
                   {t("gardenBeds.cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {taskTarget && (
+        <div className="gbl-modal-overlay" onClick={() => setTaskTarget(null)}>
+          <div className="gbl-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{t("tasks.newTask")}</h2>
+            <form onSubmit={handleCreateTask}>
+              <label>{t("tasks.name")} <span className="req">*</span></label>
+              <input
+                maxLength={255}
+                required
+                value={taskForm.title}
+                onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))}
+                placeholder={t("tasks.taskTitlePlaceholder")}
+              />
+
+              <label>{t("tasks.gardenBed")}</label>
+              <input value={taskTarget.name} disabled />
+
+              <label>{t("tasks.deadline")}</label>
+              <input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm((p) => ({ ...p, dueDate: e.target.value }))}
+              />
+
+              <label>{t("tasks.description")}</label>
+              <textarea
+                rows={3}
+                maxLength={4000}
+                value={taskForm.description}
+                onChange={(e) => setTaskForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder={t("tasks.descriptionPlaceholder")}
+              />
+
+              <div className="gbl-modal-actions">
+                <button type="submit" disabled={taskLoading} className="gbl-modal-btn-primary">
+                  {taskLoading ? t("tasks.creating") : t("tasks.createTask")}
+                </button>
+                <button type="button" className="gbl-modal-btn-secondary" onClick={() => setTaskTarget(null)}>
+                  {t("tasks.cancel")}
                 </button>
               </div>
             </form>
