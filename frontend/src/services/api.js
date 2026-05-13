@@ -112,3 +112,12 @@ export const usersApi = {
   create: (data) =>
     request('/users', { method: 'POST', body: JSON.stringify(data) }),
 };
+
+export const usersApi = {
+  list: () => request('/users'),
+  get: (id) => request(`/users/${id}`),
+  create: (data) =>
+    request('/users', { method: 'POST', body: JSON.stringify(data) }),
+  login: (email, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+};

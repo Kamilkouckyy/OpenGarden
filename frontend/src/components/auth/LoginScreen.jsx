@@ -14,7 +14,7 @@ export default function LoginScreen({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  /*const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -27,6 +27,19 @@ export default function LoginScreen({ onLogin }) {
       setError(t('auth.connectionFailed'));
     } finally {
       setLoading(false);
+    }
+  };*/
+    const handleLogin = async (e) => {
+   e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+     const result = await usersApi.login(email.trim(), password);
+     onLogin({ id: result.id, name: result.name, role: result.role });
+    } catch {
+     setError(t('auth.connectionFailed'));
+    } finally {
+     setLoading(false);
     }
   };
 
@@ -66,6 +79,8 @@ export default function LoginScreen({ onLogin }) {
           <form onSubmit={handleLogin} className="login-form">
             <label>{t('auth.email')}</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={t('auth.emailPlaceholder')} />
+            <label>{t('auth.password')}</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder={t('auth.passwordPlaceholder')} />
             {error && <div className="login-error">{error}</div>}
             <button type="submit" disabled={loading} className="login-submit">
               {loading ? t('auth.loginLoading') : t('auth.loginSubmit')}
