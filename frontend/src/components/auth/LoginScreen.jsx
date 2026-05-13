@@ -36,7 +36,7 @@ export default function LoginScreen({ onLogin }) {
     setLoading(true);
     try {
      const result = await usersApi.login(email.trim(), password);
-     onLogin({ id: result.id, name: result.name, role: result.role });
+     onLogin({ id: result.user.id, name: result.user.name, role: result.user.role });
     } catch {
      setError(t('auth.connectionFailed'));
     } finally {
