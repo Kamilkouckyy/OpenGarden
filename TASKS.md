@@ -196,3 +196,28 @@ Ověřit build/testy a doplnit dokumentaci k lokálnímu/prod OAuth nastavení.
 - Smoke start kompilovaného backendu proběhl až po úspěšné nastartování Nest aplikace a mapování rout.
 - OAuth callback URL a env proměnné jsou popsané v `LOCAL_SETUP.md`.
 - DoD: 3/3 AUTO ✅, USER ověření čeká.
+
+---
+
+## Deployment Backlog pro nasazení
+
+**Status:** 📝 READY — připraveno k přepsání do tabulky podle šablony
+**Created:** 2026-05-11
+**Format:** podle dodané šablony: Backlog Request, Tag, Task, Sprint, Estimation, Solver, Status, Worked Hours, Comment
+
+### Výstupy
+- `tasks/deployment-backlog.csv` — CSV export vhodný pro vložení do Excelu / Google Sheets.
+- `tasks/deployment-backlog.md` — čitelná Markdown verze se stejnými položkami.
+
+### Pokryté deployment úkoly
+- Příprava repozitáře a lokální ověření build příkazů.
+- Neon PostgreSQL projekt a kontrola databázového schématu.
+- Render backend služba, build/start příkazy a čisté production env proměnné.
+- Vercel frontend projekt a `REACT_APP_API_BASE_URL`.
+- Ověření backendu, frontendu a základních API-backed aplikačních flow.
+- Finální sign-off a záznam produkčních URL.
+
+### Rozdělení solverů
+- FE deployment věci: Lukas Jancik.
+- BE deployment věci: Kamil Koucky.
+- Příprava repozitáře a finální sign-off: Jakub Ryba.
