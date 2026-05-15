@@ -32,6 +32,24 @@
   text-align: center;
 }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: #6b8f7d;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #cde3d8;
+}
+
 .login-tabs {
   display: flex;
   border-radius: 10px;

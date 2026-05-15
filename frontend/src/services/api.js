@@ -1,11 +1,16 @@
 import { API_BASE_URL } from './authClient';
+import { getAccessToken } from './authStorage';
 
-async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-  });
+function buildAuthHeaders(extraHeaders = {}) {
+  const token = getAccessToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extraHeaders,
+  };
+}
+
+async function parseResponse(res) {
   const text = await res.text();
   let data = null;
   if (text) {
@@ -19,10 +24,35 @@ async function request(path, options = {}) {
   if (!res.ok) {
     const err = data || {};
     const msg = Array.isArray(err.message) ? err.message.join(', ') : err.message;
-    throw new Error(msg || `HTTP ${res.status}`);
+    const error = new Error(msg || `HTTP ${res.status}`);
+    error.status = res.status;
+    throw error;
   }
 
   return data;
+}
+
+async function publicRequest(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  return parseResponse(res);
+}
+
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: buildAuthHeaders(options.headers),
+  });
+
+  return parseResponse(res);
 }
 
 export const gardenBedsApi = {
@@ -96,9 +126,18 @@ export const eventsApi = {
     }),
 };
 
+export const authApi = {
+  login: (email, password) =>
+    publicRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+};
+
 export const usersApi = {
   list: () => request('/users'),
   get: (id) => request(`/users/${id}`),
+  me: () => request('/users/me'),
   create: (data) =>
     request('/users', { method: 'POST', body: JSON.stringify(data) }),
 };

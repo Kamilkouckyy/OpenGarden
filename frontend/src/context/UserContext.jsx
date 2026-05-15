@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { authClient } from '../services/authClient';
+import { usersApi } from '../services/api';
+import { clearAccessToken, getAccessToken } from '../services/authStorage';
 
 export const UserContext = createContext({
   user: null,
@@ -7,6 +9,15 @@ export const UserContext = createContext({
   refreshUser: () => {},
   logout: () => {},
 });
+
+function mapAppUser(appUser) {
+  return {
+    id: appUser.id,
+    name: appUser.name || appUser.email,
+    email: appUser.email,
+    role: appUser.role || 'member',
+  };
+}
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -17,17 +28,32 @@ export function UserProvider({ children }) {
     try {
       const session = await authClient.getSession();
       const sessionUser = session?.data?.user ?? session?.user ?? null;
-      setUser(
-        sessionUser
-          ? {
-              id: sessionUser.id,
-              name: sessionUser.name || sessionUser.email,
-              email: sessionUser.email,
-              role: sessionUser.role || 'member',
-            }
-          : null,
-      );
-    } catch {
+
+      if (sessionUser?.email) {
+        try {
+          const appUser = await usersApi.me();
+          setUser(mapAppUser(appUser));
+          return;
+        } catch {
+          try {
+            await authClient.signOut();
+          } catch {
+            // ignore stale session cleanup errors
+          }
+        }
+      }
+
+      if (getAccessToken()) {
+        const appUser = await usersApi.me();
+        setUser(mapAppUser(appUser));
+        return;
+      }
+
+      setUser(null);
+    } catch (error) {
+      if (error?.status === 401) {
+        clearAccessToken();
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -39,7 +65,12 @@ export function UserProvider({ children }) {
   }, [refreshUser]);
 
   const logout = useCallback(async () => {
-    await authClient.signOut();
+    clearAccessToken();
+    try {
+      await authClient.signOut();
+    } catch {
+      // ignore when session was created via email/password JWT only
+    }
     setUser(null);
   }, []);
 

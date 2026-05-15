@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: open-garden-backend
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
+    healthCheckPath: /api/docs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: JWT_SECRET
+        value: opengarden-jwt-production-secret-change-me
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: BETTER_AUTH_URL
+        value: https://open-garden-backend.onrender.com
+      - key: BETTER_AUTH_SECRET
+        value: opengarden-better-auth-production-secret-change-me
+      - key: BETTER_AUTH_TRUSTED_ORIGINS
+        value: https://open-garden-indol.vercel.app,http://localhost:3001
+      - key: CORS_ORIGINS
+        value: https://open-garden-indol.vercel.app,http://localhost:3001
+      # GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET: set manually in Render dashboard
+      - key: MICROSOFT_TENANT_ID
+        value: common

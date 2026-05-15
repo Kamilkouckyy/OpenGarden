@@ -38,6 +38,28 @@ export class BetterAuthService {
       loadEsm<{ drizzleAdapter: any }>('@better-auth/drizzle-adapter'),
     ]);
 
+    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
+    const googleClientId = this.config.get<string>('GOOGLE_CLIENT_ID', '').trim();
+    const googleClientSecret = this.config.get<string>('GOOGLE_CLIENT_SECRET', '').trim();
+    const microsoftClientId = this.config.get<string>('MICROSOFT_CLIENT_ID', '').trim();
+    const microsoftClientSecret = this.config.get<string>('MICROSOFT_CLIENT_SECRET', '').trim();
+
+    const socialProviders: Record<string, unknown> = {};
+    if (googleClientId && googleClientSecret) {
+      socialProviders.google = {
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+      };
+    }
+    if (microsoftClientId && microsoftClientSecret) {
+      socialProviders.microsoft = {
+        clientId: microsoftClientId,
+        clientSecret: microsoftClientSecret,
+        tenantId: this.config.get<string>('MICROSOFT_TENANT_ID', 'common'),
+        prompt: 'select_account',
+      };
+    }
+
     this.authInstance = betterAuth({
       baseURL: this.config.get<string>('BETTER_AUTH_URL', 'http://localhost:3000'),
       secret: this.config.get<string>('BETTER_AUTH_SECRET', 'development-better-auth-secret'),
@@ -46,6 +68,15 @@ export class BetterAuthService {
         .split(',')
         .map((origin) => origin.trim())
         .filter(Boolean),
+      advanced: {
+        useSecureCookies: isProduction,
+        defaultCookieAttributes: isProduction
+          ? {
+              sameSite: 'none',
+              secure: true,
+            }
+          : undefined,
+      },
       database: drizzleAdapter(this.db, {
         provider: 'pg',
         schema: {
@@ -55,18 +86,7 @@ export class BetterAuthService {
           verification: schema.authVerifications,
         },
       }),
-      socialProviders: {
-        google: {
-          clientId: this.config.get<string>('GOOGLE_CLIENT_ID', ''),
-          clientSecret: this.config.get<string>('GOOGLE_CLIENT_SECRET', ''),
-        },
-        microsoft: {
-          clientId: this.config.get<string>('MICROSOFT_CLIENT_ID', ''),
-          clientSecret: this.config.get<string>('MICROSOFT_CLIENT_SECRET', ''),
-          tenantId: this.config.get<string>('MICROSOFT_TENANT_ID', 'common'),
-          prompt: 'select_account',
-        },
-      },
+      socialProviders,
     });
 
     return this.authInstance;

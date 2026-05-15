@@ -8,6 +8,7 @@ import { DRIZZLE } from '../database/database.module';
 import * as schema from '../database/schema';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt.strategy';
+import { AppUser } from './better-auth.service';
 
 @Injectable()
 export class AuthService {
@@ -17,10 +18,11 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
     const [user] = await this.db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.email, dto.email));
+      .where(eq(schema.users.email, normalizedEmail));
 
     if (!user) {
       throw new UnauthorizedException('Nesprávný email nebo heslo');
@@ -49,5 +51,34 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async getUserFromAccessToken(token: string): Promise<AppUser> {
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify<JwtPayload>(token);
+    } catch {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    if (!payload.sub) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    const [user] = await this.db
+      .select({
+        id: schema.users.id,
+        name: schema.users.name,
+        email: schema.users.email,
+        role: schema.users.role,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, payload.sub));
+
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    return user;
   }
 }

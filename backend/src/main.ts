@@ -43,10 +43,11 @@ async function bootstrap() {
     .setTitle('OpenGarden API')
     .setDescription(
       'REST API pro správu komunitní zahrady.\n\n' +
-        '**Autentizace:** Přihlášení probíhá přes Better Auth OAuth endpointy na `/api/auth/*`.',
+        '**Autentizace:** E-mail/heslo přes `POST /auth/login` (JWT) nebo Google OAuth přes Better Auth na `/api/auth/*`.',
     )
     .setVersion('1.0')
-    .addTag('auth', 'Better Auth OAuth session')
+    .addBearerAuth()
+    .addTag('auth', 'Přihlášení (JWT + Better Auth)')
     .addTag('users', 'Správa uživatelů')
     .addTag('garden-beds', 'Záhony – rezervace a správa')
     .addTag('tasks', 'Úkoly')
