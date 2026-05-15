@@ -15,3 +15,6 @@ backend/DB_sql/
 
 frontend/.env
 neon.txt
+
+# Local secrets tutorial — never commit
+SECRETS_TUTORIAL.md
