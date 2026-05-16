@@ -18,7 +18,7 @@ export default function GardenBedDetailview() {
   const [saving, setSaving] = useState(false);
 
   const isAdmin = user?.role === "admin";
-  const isOwner = bed?.ownerId === user?.id;
+  const isOwner = Number(bed?.ownerId) === Number(user?.id);
 
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });

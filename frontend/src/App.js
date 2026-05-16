@@ -3,6 +3,7 @@ import { UserProvider, useUser } from "./context/UserContext";
 import { LanguageProvider, useLanguage } from "./i18n/LanguageContext";
 import Navbar from "./components/layout/Navbar";
 import GardenBedOverview from "./components/common/GardenBedOverview";
+import GardenBedDetailview from "./components/common/GardenBedDetailview";
 import TaskPanelOverview from "./components/common/TaskPanelOverview";
 import TaskDetailCard from "./components/common/TaskDetailCard";
 import ReportsOverview from "./components/common/ReportsOverview";
@@ -39,7 +40,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<Navigate to="/garden-beds" replace />} />
           <Route path="/garden-beds" element={<GardenBedOverview />} />
-          <Route path="/garden-beds/:id" element={<Navigate to="/garden-beds" replace />} />
+          <Route path="/garden-beds/:id" element={<GardenBedDetailview />} />
           <Route path="/tasks" element={<TaskPanelOverview />} />
           <Route path="/tasks/:id" element={<TaskDetailCard />} />
           <Route path="/reports" element={<ReportsOverview />} />

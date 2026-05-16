@@ -12,6 +12,12 @@ export class CreateEventDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Hlavní brána', description: 'Místo konání akce' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  location?: string;
+
   @ApiPropertyOptional({ example: 'https://example.com/event.jpg', description: 'URL obrázku události' })
   @IsOptional()
   @IsUrl()

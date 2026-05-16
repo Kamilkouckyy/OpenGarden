@@ -133,7 +133,7 @@ export default function EventDetailView() {
           description: eventData.description,
           photoUrl: eventData.photoUrl,
           date: eventData.date,
-          context: eventData.context,
+          location: eventData.location,
         },
         user,
       );
@@ -223,7 +223,7 @@ export default function EventDetailView() {
               </div>
               <div className="edv-meta-item">
                 <span>{t("events.location")}</span>
-                <strong>{event.context || t("events.noLocation")}</strong>
+                <strong>{event.location || t("events.noLocation")}</strong>
               </div>
               <div className="edv-meta-item">
                 <span>{t("events.myParticipation")}</span>
