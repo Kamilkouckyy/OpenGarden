@@ -14,6 +14,8 @@ export default function EquipmentDetail() {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({ name: "", description: "" });
   const [notification, setNotification] = useState(null);
 
   const notify = (msg, type = "success") => {
@@ -26,6 +28,7 @@ export default function EquipmentDetail() {
     try {
       const data = await equipmentApi.get(id);
       setItem(data);
+      setForm({ name: data.name || "", description: data.description || "" });
     } catch (err) {
       notify(err.message || t("equipment.loadDetailFailed"), "error");
     } finally {
@@ -58,6 +61,21 @@ export default function EquipmentDetail() {
       await loadDetail();
     } catch (err) {
       notify(err.message || t("equipment.statusChangeFailed"), "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await equipmentApi.update(item.id, { name: form.name, description: form.description }, user);
+      notify(t("equipment.updateSuccess"));
+      setIsEditing(false);
+      await loadDetail();
+    } catch (err) {
+      notify(err.message || t("equipment.updateFailed"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +159,12 @@ export default function EquipmentDetail() {
           </button>
 
           {canManage && (
+            <button className="rd-action edit" onClick={() => setIsEditing(true)} disabled={isSubmitting}>
+              {t("equipment.edit")}
+            </button>
+          )}
+
+          {canManage && (
             <button className="rd-action edit" onClick={handleToggleStatus} disabled={isSubmitting}>
               {item.status === "functional" ? t("equipment.markNonFunctional") : t("equipment.markFunctional")}
             </button>
@@ -153,6 +177,39 @@ export default function EquipmentDetail() {
           )}
         </div>
       </section>
+
+      {isEditing && (
+        <div className="rd-modal-overlay" onClick={() => setIsEditing(false)}>
+          <div className="rd-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{t("equipment.editTitle")}</h2>
+            <form onSubmit={handleUpdate}>
+              <label>{t("equipment.name")} <span className="req">*</span></label>
+              <input
+                required
+                maxLength={100}
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              />
+
+              <label>{t("equipment.description")}</label>
+              <textarea
+                rows={3}
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              />
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button type="submit" className="rd-action edit" disabled={isSubmitting}>
+                  {t("equipment.save")}
+                </button>
+                <button type="button" className="rd-action" onClick={() => setIsEditing(false)} disabled={isSubmitting}>
+                  {t("equipment.cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {notification && <div className={`gbl-notif ${notification.type}`}>{notification.msg}</div>}
     </>

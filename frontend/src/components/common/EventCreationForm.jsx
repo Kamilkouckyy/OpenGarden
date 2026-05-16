@@ -51,7 +51,7 @@ export default function EventCreationForm({
     description: defaultValues.description || defaultValues.desc || "",
     date: toDisplayDateTime(defaultValues.date),
     photo: defaultValues.photo || defaultValues.photoUrl || "",
-    context: defaultValues.context || "",
+    location: defaultValues.location || defaultValues.context || "",
   });
   const [errors, setErrors] = useState({});
 
@@ -100,10 +100,9 @@ export default function EventCreationForm({
     onSubmit?.({
       title: values.title.trim(),
       description: values.description.trim(),
-      desc: values.description.trim(),
       date: parsedDate.toISOString(),
       photoUrl: values.photo.trim() || undefined,
-      context: values.context.trim() || undefined,
+      location: values.location.trim() || undefined,
     });
   };
 
@@ -181,14 +180,14 @@ export default function EventCreationForm({
       />
       {errors.photo && <span className="ecf-error block">{errors.photo}</span>}
 
-      <label className="ecf-label" htmlFor="event-context">{t("events.location")}</label>
+      <label className="ecf-label" htmlFor="event-location">{t("events.location")}</label>
       <input
-        id="event-context"
+        id="event-location"
         className="ecf-input"
-        value={values.context}
+        value={values.location}
         maxLength={100}
         disabled={isSubmitting}
-        onChange={(e) => updateValue("context", e.target.value)}
+        onChange={(e) => updateValue("location", e.target.value)}
         placeholder={t("events.locationPlaceholder")}
       />
 

@@ -23,6 +23,7 @@ export class EventsService {
         id: schema.communityEvents.id,
         title: schema.communityEvents.title,
         description: schema.communityEvents.description,
+        location: schema.communityEvents.location,
         photoUrl: schema.communityEvents.photoUrl,
         date: schema.communityEvents.date,
         status: schema.communityEvents.status,
@@ -40,6 +41,7 @@ export class EventsService {
         id: schema.communityEvents.id,
         title: schema.communityEvents.title,
         description: schema.communityEvents.description,
+        location: schema.communityEvents.location,
         photoUrl: schema.communityEvents.photoUrl,
         date: schema.communityEvents.date,
         status: schema.communityEvents.status,
@@ -76,6 +78,7 @@ export class EventsService {
     const data: Partial<typeof schema.communityEvents.$inferInsert> = {
       title: dto.title,
       description: dto.description,
+      location: dto.location,
       photoUrl: dto.photoUrl,
     };
     if (dto.date) data.date = new Date(dto.date);

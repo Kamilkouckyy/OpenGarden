@@ -13,6 +13,12 @@ export class UpdateEventDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Hlavní brána' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  location?: string;
+
   @ApiPropertyOptional({ example: 'https://example.com/event.jpg' })
   @IsOptional()
   @IsUrl()

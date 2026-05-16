@@ -186,13 +186,17 @@ export default function GardenBedOverview() {
           {!loading && filtered.map((bed) => {
             const statusLabel = STATUS_LABEL[bed.status] || bed.status;
             const statusText = getStatusText(statusLabel);
-            const isOwner = bed.ownerId === user?.id;
+            const isOwner = Number(bed.ownerId) === Number(user?.id);
             const isFree = bed.status === "free";
 
             return (
               <div
                 key={bed.id}
                 className={`gbl-bed-card ${statusLabel}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/garden-beds/${bed.id}`)}
+                onKeyDown={(e) => e.key === "Enter" && navigate(`/garden-beds/${bed.id}`)}
               >
                 <div className="gbl-bed-name">{bed.name}</div>
                 <div className="gbl-bed-info">{t("gardenBeds.status")}: <strong>{statusText}</strong></div>
@@ -223,6 +227,11 @@ export default function GardenBedOverview() {
                   <button className="gbl-action report" onClick={() => navigate(`/reports?bedName=${encodeURIComponent(bed.name)}`)}>
                     {t("gardenBeds.report")}
                   </button>
+                  {isAdmin && (
+                    <button className="gbl-action edit" onClick={() => navigate(`/garden-beds/${bed.id}`)}>
+                      {t("gardenBeds.edit")}
+                    </button>
+                  )}
                   {isAdmin && (
                     <button className="gbl-action delete" onClick={() => handleDelete(bed.id, bed.name)}>
                       {t("gardenBeds.delete")}

@@ -51,6 +51,7 @@ export const translations = {
       release: "Release",
       addTask: "+ Task",
       report: "Report",
+      edit: "Edit",
       delete: "Delete",
       addModalTitle: "Add garden bed",
       name: "Name",
@@ -200,6 +201,10 @@ export const translations = {
       author: "Author",
       userFallback: "User #{id}",
       metadata: "Metadata",
+      editTitle: "Edit equipment",
+      save: "Save",
+      updateSuccess: "Equipment has been updated.",
+      updateFailed: "Update failed.",
     },
 
     reports: {
@@ -420,6 +425,7 @@ export const translations = {
       release: "Uvolnit",
       addTask: "+ Úkol",
       report: "Nahlásit",
+      edit: "Upravit",
       delete: "Smazat",
       addModalTitle: "Přidat záhon",
       name: "Název",
@@ -569,6 +575,10 @@ export const translations = {
       author: "Autor",
       userFallback: "Uživatel #{id}",
       metadata: "Metadata",
+      editTitle: "Upravit vybavení",
+      save: "Uložit",
+      updateSuccess: "Vybavení bylo upraveno.",
+      updateFailed: "Uložení se nezdařilo.",
     },
 
     reports: {

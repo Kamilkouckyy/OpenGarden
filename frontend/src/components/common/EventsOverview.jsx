@@ -123,7 +123,7 @@ export default function EventsOverview() {
           description: eventData.description,
           photoUrl: eventData.photoUrl,
           date: eventData.date,
-          context: eventData.context,
+          location: eventData.location,
         },
         user,
       );
